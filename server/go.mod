@@ -17,3 +17,5 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.12
 	google.golang.org/api v0.43.0
 )
+
+replace github.com/getchill-app/http/api => ../api

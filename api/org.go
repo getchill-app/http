@@ -13,13 +13,38 @@ import (
 type Org struct {
 	KID        keys.ID   `json:"id"`
 	Domain     string    `json:"domain"`
-	Account    keys.ID   `json:"account"`
+	CreatedBy  keys.ID   `json:"createdBy"`
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
 }
 
 // OrgCreateRequest ...
 type OrgCreateRequest struct {
 	Domain string `json:"domain"`
+}
+
+// OrgsResponse ...
+type OrgsResponse struct {
+	Orgs []*Org `json:"orgs"`
+}
+
+// OrgVaultCreateRequest ...
+type OrgVaultCreateRequest struct {
+	KID         keys.ID `json:"kid"`
+	EncyptedKey []byte  `json:"ek"`
+}
+
+// OrgVault ...
+type OrgVault struct {
+	ID           keys.ID `json:"id" msgpack:"id"`
+	Index        int64   `json:"idx" msgpack:"idx"`
+	Timestamp    int64   `json:"ts" msgpack:"ts"`
+	Token        string  `json:"token" msgpack:"token"`
+	EncryptedKey []byte  `json:"ek,omitempty" msgpack:"ek,omitempty"`
+}
+
+// OrgsVaultsResponse ...
+type OrgVaultsResponse struct {
+	Vaults []*OrgVault `json:"vaults"`
 }
 
 type OrgStatement struct {

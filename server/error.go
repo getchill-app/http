@@ -43,12 +43,12 @@ func (s *Server) ErrResponse(c echo.Context, err error) error {
 	switch v := err.(type) {
 	case ErrHTTP:
 		if v.Code >= 500 {
-			s.logger.Errorf("Error: %+v", err)
+			s.logger.Errorf("Error: %s %s %+v", c.Request().Method, c.Request().URL.String(), err)
 		}
 		return JSON(c, v.Code, &response{Error: &v})
 	case *ErrHTTP:
 		if v.Code >= 500 {
-			s.logger.Errorf("Error: %+v", err)
+			s.logger.Errorf("Error: %s %s %+v", c.Request().Method, c.Request().URL.String(), err)
 		}
 		return JSON(c, v.Code, &response{Error: v})
 	}
@@ -100,7 +100,7 @@ func (s *Server) ErrNotFound(c echo.Context, err error) error {
 // ErrorHandler returns error handler that returns in the format:
 // {"error": {"message": "error message", status: 500}}".
 func (s *Server) ErrorHandler(err error, c echo.Context) {
-	s.logger.Errorf("Error: %+v", err)
+	s.logger.Errorf("Error: %s %s %+v", c.Request().Method, c.Request().URL.String(), err)
 
 	code := http.StatusInternalServerError
 	var resp *response

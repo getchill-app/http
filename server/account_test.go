@@ -45,8 +45,8 @@ func TestAccountCreate(t *testing.T) {
 	require.Equal(t, "alice@keys.pub", account.Email)
 	require.False(t, account.VerifiedEmail)
 
-	// POST /account/:aid/verifyemail
-	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verifyemail"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
+	// POST /account/:aid/verify-email
+	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verify-email"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)
 	account = api.Account{}
@@ -101,8 +101,8 @@ func TestAccountEmailCodeExpired(t *testing.T) {
 	// Add hour to clock
 	clock.Add(time.Hour)
 
-	// POST /account/:aid/verifyemail
-	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verifyemail"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
+	// POST /account/:aid/verify-email
+	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verify-email"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)
 	require.Equal(t, http.StatusBadRequest, code)
@@ -131,16 +131,16 @@ func TestAccountEmailCodeTooManyAttempts(t *testing.T) {
 	verifyCode := emailer.SentVerificationEmail("alice@keys.pub")
 	require.NotEmpty(t, verifyCode)
 
-	// POST /account/:aid/verifyemail (wrong code)
+	// POST /account/:aid/verify-email (wrong code)
 	for i := 0; i < 5; i++ {
-		req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verifyemail"), &api.AccountVerifyEmailRequest{Code: "12345"}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
+		req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verify-email"), &api.AccountVerifyEmailRequest{Code: "12345"}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
 		require.NoError(t, err)
 		code, _, body = srv.Serve(req)
 		require.Equal(t, http.StatusBadRequest, code)
 		require.Equal(t, `{"error":{"code":400,"message":"invalid code"}}`, string(body))
 	}
 
-	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verifyemail"), &api.AccountVerifyEmailRequest{Code: "12345"}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
+	req, err = http.NewJSONRequest("POST", dstore.Path("account", alice.ID(), "verify-email"), &api.AccountVerifyEmailRequest{Code: "12345"}, http.WithTimestamp(clock.Now()), http.SignedWith(alice))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)
 	require.Equal(t, http.StatusBadRequest, code)
@@ -164,8 +164,8 @@ func testVerifyEmail(t *testing.T, env *env, srv *testServerEnv, key *keys.EdX25
 	verifyCode := srv.Emailer.SentVerificationEmail(email)
 	require.NotEmpty(t, verifyCode)
 
-	// POST /account/:aid/verifyemail
-	req, err := http.NewJSONRequest("POST", dstore.Path("account", key.ID(), "verifyemail"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(env.clock.Now()), http.SignedWith(key))
+	// POST /account/:aid/verify-email
+	req, err := http.NewJSONRequest("POST", dstore.Path("account", key.ID(), "verify-email"), &api.AccountVerifyEmailRequest{Code: verifyCode}, http.WithTimestamp(env.clock.Now()), http.SignedWith(key))
 	require.NoError(t, err)
 	code, _, body := srv.Serve(req)
 	account := api.Account{}

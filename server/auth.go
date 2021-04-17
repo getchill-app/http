@@ -105,3 +105,11 @@ func nonceCheck(rds Redis) http.NonceCheck {
 		return nil
 	}
 }
+
+// nonceAlreadyChecked is used when there are multiple auth headers we already
+// checked the nonce.
+func nonceAlreadyChecked() http.NonceCheck {
+	return func(ctx context.Context, nonce string) error {
+		return nil
+	}
+}

@@ -80,10 +80,8 @@ github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6/go.mod h1:1i71OnUq3iUe1ma7Lr6yG6/rjvM3emb6yoL7xLFzcVQ=
 github.com/getchill-app/http-client v0.0.0-20210403012548-aee276f0e1d8 h1:WjH4vGKVl2C22SQDttZvHkUygOcCq0yOPagRbyUfGmA=
 github.com/getchill-app/http-client v0.0.0-20210403012548-aee276f0e1d8/go.mod h1:2r0ZnVuGzXSNGGTezLM2020tEiMlaC7YopnPBI+l9hw=
-github.com/getchill-app/http/api v0.0.0-20210412221521-09fe0ac8b72b h1:OicRqRPou0eJj+XIGJhqTPosCUYDM40Mx4VQg+dfpC8=
-github.com/getchill-app/http/api v0.0.0-20210412221521-09fe0ac8b72b/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
-github.com/getchill-app/http/api v0.0.0-20210416132649-f0d62cd56fe7 h1:+XfmxbV4D9uDWSPC+IGLcP4S+EDOntFQsd8gyuhXcgM=
-github.com/getchill-app/http/api v0.0.0-20210416132649-f0d62cd56fe7/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
+github.com/getchill-app/http/api v0.0.0-20210417135728-35e5bb4d8f35 h1:S+1zuQiDfeG2aKZ6/DhSAFG0SybzJ1oVUQuq85DP0BQ=
+github.com/getchill-app/http/api v0.0.0-20210417135728-35e5bb4d8f35/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
 github.com/getchill-app/server v0.0.0-20210403011736-cb8e3ad4de38/go.mod h1:0SqZtNl5RL0zX9CJed1QT4jOsVFAxbH7WOkzuFiuSOc=
 github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c h1:uBZQCl7bZe4hShMwZfmFrBSBFyb5qHKIy1DRIKwusS8=
 github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c/go.mod h1:0SqZtNl5RL0zX9CJed1QT4jOsVFAxbH7WOkzuFiuSOc=
@@ -185,8 +183,9 @@ github.com/keys-pub/keys v0.1.21-0.20210326150443-d3a790bc64b8/go.mod h1:h7u4e6M
 github.com/keys-pub/keys v0.1.21-0.20210326211358-fb3db764000f/go.mod h1:h7u4e6MHcP9wdIlOhqFOJWrGZgk65KnSfaN5iioL2OI=
 github.com/keys-pub/keys v0.1.21-0.20210331163518-474087d0d185/go.mod h1:qwiSbeSocm/ZXfF5FcX+8aBixjSR9cPffShtctYMpuM=
 github.com/keys-pub/keys v0.1.21-0.20210402011617-28dedbda9f32/go.mod h1:qwiSbeSocm/ZXfF5FcX+8aBixjSR9cPffShtctYMpuM=
-github.com/keys-pub/keys v0.1.22-0.20210412214905-995329cc5e85 h1:l/JA2wKulIi1YugpubS+atvXjT0tI16f9P6lyET6ehA=
 github.com/keys-pub/keys v0.1.22-0.20210412214905-995329cc5e85/go.mod h1:qwiSbeSocm/ZXfF5FcX+8aBixjSR9cPffShtctYMpuM=
+github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7 h1:uMwOiDiVQSVNWJieBzt1V4h7Y4Yhtmqn5ui6bG6f89I=
+github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7/go.mod h1:qwiSbeSocm/ZXfF5FcX+8aBixjSR9cPffShtctYMpuM=
 github.com/keys-pub/keys-ext/auth/fido2 v0.0.0-20210327130412-59e9fcfcf22c h1:UzWqGlDlAJ+hydIXy+bmuwrAEdZ2nfaYvvAyib+sNRo=
 github.com/keys-pub/keys-ext/auth/fido2 v0.0.0-20210327130412-59e9fcfcf22c/go.mod h1:gYlaSTxabOCy6S3/uKVlMx36KzwEs6D0bFy5wjwj4K4=
 github.com/keys-pub/keys-ext/firestore v0.0.0-20210326150845-39fd96e22101/go.mod h1:XR5aJYx1qYfmWKXf9Hg+JexfYz71R9ju8o1ydn8Vtgk=

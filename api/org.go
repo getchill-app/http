@@ -11,7 +11,7 @@ import (
 )
 
 type Org struct {
-	KID        keys.ID   `json:"id"`
+	ID         keys.ID   `json:"id"`
 	Domain     string    `json:"domain"`
 	CreatedBy  keys.ID   `json:"createdBy"`
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
@@ -29,8 +29,8 @@ type OrgsResponse struct {
 
 // OrgVaultCreateRequest ...
 type OrgVaultCreateRequest struct {
-	KID         keys.ID `json:"kid"`
-	EncyptedKey []byte  `json:"ek"`
+	KID         string `json:"kid"`
+	EncyptedKey []byte `json:"ek"`
 }
 
 // OrgVault ...
@@ -53,6 +53,27 @@ type OrgStatement struct {
 	Timestamp int64   `json:"ts"`
 }
 
+// OrgInviteRequest ...
+type OrgInviteRequest struct {
+	Invite       string `json:"invite"`
+	EncryptedKey []byte `json:"ek"`
+}
+
+// OrgInvite ...
+type OrgInvite struct {
+	Org       keys.ID `json:"oid"`
+	Domain    string  `json:"domain"`
+	Invite    keys.ID `json:"invite"`
+	InvitedBy keys.ID `json:"invitedBy"`
+	// EncryptedKey is encrypted org key for the invite
+	EncryptedKey []byte `json:"ek"`
+}
+
+// OrgInvitesResponse ...
+type OrgInvitesResponse struct {
+	Invites []*OrgInvite `json:"invites"`
+}
+
 func OrgSign(org *keys.EdX25519Key, domain string, ts time.Time) (string, error) {
 	st := &OrgStatement{
 		KID:       org.ID(),
@@ -71,14 +92,14 @@ func (o Org) Verify(s string) error {
 	if err != nil {
 		return err
 	}
-	if pk != o.KID {
+	if pk != o.ID {
 		return errors.Errorf("invalid kid")
 	}
 	var st OrgStatement
 	if err := json.Unmarshal(b, &st); err != nil {
 		return err
 	}
-	if pk != o.KID {
+	if pk != st.KID {
 		return errors.Errorf("invalid statement kid")
 	}
 	if string(st.Domain) != o.Domain {

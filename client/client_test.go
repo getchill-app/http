@@ -1,11 +1,13 @@
 package client_test
 
 import (
+	"bytes"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/http/server"
+	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/http"
 	"github.com/keys-pub/keys/tsutil"
@@ -13,12 +15,12 @@ import (
 )
 
 type env struct {
-	clock      tsutil.Clock
-	fi         server.Fire
-	client     http.Client
-	srv        *server.Server
-	httpServer *httptest.Server
-	handler    http.Handler
+	clock        tsutil.Clock
+	fi           server.Fire
+	serverClient http.Client
+	srv          *server.Server
+	httpServer   *httptest.Server
+	handler      http.Handler
 }
 
 func newEnv(t *testing.T, logLevel server.LogLevel) (*env, func()) {
@@ -58,10 +60,10 @@ func newEnvWithOptions(t *testing.T, opts *envOptions) (*env, func()) {
 		opts.fi = mem
 	}
 	rds := server.NewRedisTest(opts.clock)
-	client := http.NewClient()
+	serverClient := http.NewClient()
 
 	serverLogger := server.NewLogger(opts.logLevel)
-	srv := server.New(opts.fi, rds, client, opts.clock, serverLogger)
+	srv := server.New(opts.fi, rds, serverClient, opts.clock, serverLogger)
 	srv.SetClock(opts.clock)
 	err := srv.SetInternalKey("6a169a699f7683c04d127504a12ace3b326e8b56a61a9b315cf6b42e20d6a44a")
 	require.NoError(t, err)
@@ -83,12 +85,12 @@ func newEnvWithOptions(t *testing.T, opts *envOptions) (*env, func()) {
 	closeFn := func() { httpServer.Close() }
 
 	return &env{
-		clock:      opts.clock,
-		fi:         opts.fi,
-		client:     client,
-		srv:        srv,
-		httpServer: httpServer,
-		handler:    handler,
+		clock:        opts.clock,
+		fi:           opts.fi,
+		serverClient: serverClient,
+		srv:          srv,
+		httpServer:   httpServer,
+		handler:      handler,
 	}, closeFn
 }
 
@@ -116,4 +118,8 @@ func (t *testEmailer) SentVerificationEmail(email string) string {
 func (t *testEmailer) SendVerificationEmail(email string, code string) error {
 	t.sentVerificationEmail[email] = code
 	return nil
+}
+
+func testSeed(b byte) *[32]byte {
+	return keys.Bytes32(bytes.Repeat([]byte{b}, 32))
 }

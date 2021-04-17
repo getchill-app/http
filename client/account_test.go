@@ -22,6 +22,10 @@ func TestAccount(t *testing.T) {
 	err := client.AccountCreate(ctx, alice, "alice@keys.pub")
 	require.NoError(t, err)
 
+	resp, err := client.Account(ctx, alice)
+	require.NoError(t, err)
+	require.Equal(t, "alice@keys.pub", resp.Email)
+
 	mk := keys.Rand32()
 	pw, err := auth.NewPassword("testpassword", mk)
 	require.NoError(t, err)

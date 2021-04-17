@@ -14,6 +14,8 @@ import (
 func TestAccount(t *testing.T) {
 	env, closeFn := newEnv(t, server.NoLevel)
 	defer closeFn()
+	emailer := newTestEmailer()
+	env.srv.SetEmailer(emailer)
 	client := newTestClient(t, env)
 	ctx := context.TODO()
 
@@ -25,6 +27,11 @@ func TestAccount(t *testing.T) {
 	resp, err := client.Account(ctx, alice)
 	require.NoError(t, err)
 	require.Equal(t, "alice@keys.pub", resp.Email)
+
+	code := emailer.SentVerificationEmail("alice@keys.pub")
+	require.NotEmpty(t, code)
+	err = client.AccountVerify(ctx, alice, code)
+	require.NoError(t, err)
 
 	mk := keys.Rand32()
 	pw, err := auth.NewPassword("testpassword", mk)

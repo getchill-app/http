@@ -11,9 +11,27 @@ import (
 	"github.com/keys-pub/vault/auth"
 )
 
-func (c *Client) AccountCreate(ctx context.Context, account *keys.EdX25519Key, email string) error {
-	path := dstore.Path("account", account.ID())
+func (c *Client) AccountRegister(ctx context.Context, email string) error {
+	path := "/account/register"
 	body, _ := json.Marshal(&api.AccountCreateRequest{Email: email})
+	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) AccountRegisterInvite(ctx context.Context, account *keys.EdX25519Key, email string) error {
+	path := "/account/register/invite"
+	body, _ := json.Marshal(&api.AccountRegisterInviteRequest{Email: email})
+	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) AccountCreate(ctx context.Context, account *keys.EdX25519Key, email string, code string) error {
+	path := dstore.Path("account", account.ID())
+	body, _ := json.Marshal(&api.AccountCreateRequest{Email: email, Code: code})
 	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
 		return err
 	}
@@ -31,15 +49,6 @@ func (c *Client) Account(ctx context.Context, account *keys.EdX25519Key) (*api.A
 		return nil, err
 	}
 	return &out, nil
-}
-
-func (c *Client) AccountVerify(ctx context.Context, account *keys.EdX25519Key, code string) error {
-	path := dstore.Path("account", account.ID(), "verify-email")
-	body, _ := json.Marshal(&api.AccountVerifyEmailRequest{Code: code})
-	if _, err := c.Request(ctx, &client.Request{Method: "POST", Path: path, Body: body, Key: account}); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Client) AccountAuthSave(ctx context.Context, account *keys.EdX25519Key, auth *auth.Auth) error {

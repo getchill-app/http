@@ -2,9 +2,11 @@ package client_test
 
 import (
 	"bytes"
+	"context"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/getchill-app/http/api"
 	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
@@ -80,6 +82,8 @@ func newEnvWithOptions(t *testing.T, opts *envOptions) (*env, func()) {
 		}
 	}
 
+	bootstrapInvite(t, opts.fi, "alice@keys.pub")
+
 	httpServer := httptest.NewServer(handler)
 	srv.URL = httpServer.URL
 	closeFn := func() { httpServer.Close() }
@@ -122,4 +126,12 @@ func (t *testEmailer) SendVerificationEmail(email string, code string) error {
 
 func testSeed(b byte) *[32]byte {
 	return keys.Bytes32(bytes.Repeat([]byte{b}, 32))
+}
+
+func bootstrapInvite(t *testing.T, fi server.Fire, email string) {
+	invite := api.AccountRegisterInvite{
+		Email: email,
+	}
+	err := fi.Set(context.TODO(), dstore.Path("account-invites", email), dstore.From(invite))
+	require.NoError(t, err)
 }

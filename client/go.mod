@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210417135728-35e5bb4d8f35
+	github.com/getchill-app/http/api v0.0.0-20210418184534-d661ca3c7aa9
 	github.com/getchill-app/http/server v0.0.0-20210412222146-088571f8d3a6
 	github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7
 	github.com/keys-pub/vault v0.0.0-20210403222024-d7c66fea4997

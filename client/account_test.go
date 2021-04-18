@@ -1,10 +1,10 @@
 package client_test
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
+	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/vault/auth"
@@ -18,20 +18,20 @@ func TestAccount(t *testing.T) {
 	env.srv.SetEmailer(emailer)
 	client := newTestClient(t, env)
 	ctx := context.TODO()
+	var err error
 
-	alice := keys.NewEdX25519KeyFromSeed(keys.Bytes32(bytes.Repeat([]byte{0x01}, 32)))
+	err = client.AccountRegister(ctx, "alice@keys.pub")
+	require.NoError(t, err)
+	code := emailer.SentVerificationEmail("alice@keys.pub")
+	require.NotEmpty(t, code)
 
-	err := client.AccountCreate(ctx, alice, "alice@keys.pub")
+	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
+	err = client.AccountCreate(ctx, alice, "alice@keys.pub", code)
 	require.NoError(t, err)
 
 	resp, err := client.Account(ctx, alice)
 	require.NoError(t, err)
 	require.Equal(t, "alice@keys.pub", resp.Email)
-
-	code := emailer.SentVerificationEmail("alice@keys.pub")
-	require.NotEmpty(t, code)
-	err = client.AccountVerify(ctx, alice, code)
-	require.NoError(t, err)
 
 	mk := keys.Rand32()
 	pw, err := auth.NewPassword("testpassword", mk)
@@ -44,11 +44,18 @@ func TestAccount(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(out))
 
-	// Create conflict
-	err = client.AccountCreate(ctx, alice, "alice@keys.pub")
-	require.EqualError(t, err, "account email already exists (409)")
-
-	// Create empty
-	err = client.AccountCreate(ctx, alice, "")
+	err = client.AccountRegister(ctx, "invalid")
 	require.EqualError(t, err, "invalid email (400)")
+}
+
+func testAccount(t *testing.T, cl *client.Client, emailer *testEmailer, key *keys.EdX25519Key, email string) {
+	var err error
+	ctx := context.TODO()
+
+	err = cl.AccountRegister(ctx, email)
+	require.NoError(t, err)
+	code := emailer.SentVerificationEmail(email)
+	require.NotEmpty(t, code)
+	err = cl.AccountCreate(ctx, key, email, code)
+	require.NoError(t, err)
 }

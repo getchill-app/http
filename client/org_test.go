@@ -13,17 +13,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOrg(t *testing.T) {
-	env, closeFn := newEnv(t, server.DebugLevel)
+func TestOrgSetup(t *testing.T) {
+	env, closeFn := newEnv(t, server.NoLevel)
 	defer closeFn()
+	emailer := newTestEmailer()
+	env.srv.SetEmailer(emailer)
 	ctx := context.TODO()
+	var err error
 
 	aliceClient := newTestClient(t, env)
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
 	org := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
 
-	err := aliceClient.AccountCreate(ctx, alice, "alice@keys.pub")
+	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub")
+
+	err = aliceClient.OrgCreate(ctx, org, alice)
 	require.NoError(t, err)
+
+	out, err := aliceClient.Org(ctx, org)
+	require.NoError(t, err)
+	require.Equal(t, alice.ID(), out.CreatedBy)
+}
+
+func TestOrgDomain(t *testing.T) {
+	env, closeFn := newEnv(t, server.NoLevel)
+	defer closeFn()
+	emailer := newTestEmailer()
+	env.srv.SetEmailer(emailer)
+	ctx := context.TODO()
+	var err error
+
+	aliceClient := newTestClient(t, env)
+	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
+	org := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
+
+	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub")
 
 	st, err := aliceClient.OrgSign(org, "test.domain", time.Now())
 	require.NoError(t, err)
@@ -32,14 +56,14 @@ func TestOrg(t *testing.T) {
 		return http.ProxyResponse{Err: http.Err{Code: 404}}
 	})
 
-	err = aliceClient.OrgCreate(ctx, org, "test.domain", alice)
+	err = aliceClient.OrgCreateDomain(ctx, org, alice, "test.domain")
 	require.EqualError(t, err, "failed to verify domain: http error 404 (400)")
 
 	env.serverClient.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
 		return http.ProxyResponse{Body: []byte(st)}
 	})
 
-	err = aliceClient.OrgCreate(ctx, org, "test.domain", alice)
+	err = aliceClient.OrgCreateDomain(ctx, org, alice, "test.domain")
 	require.NoError(t, err)
 
 	out, err := aliceClient.Org(ctx, org)
@@ -48,7 +72,7 @@ func TestOrg(t *testing.T) {
 
 	// Create channel
 	channel := keys.GenerateEdX25519Key()
-	created, err := aliceClient.OrgCreateVault(ctx, org, channel)
+	created, err := aliceClient.OrgCreateVault(ctx, org.ID(), alice, channel)
 	require.NoError(t, err)
 	require.NotEmpty(t, created.Token)
 
@@ -69,10 +93,14 @@ func TestOrg(t *testing.T) {
 	// Bob
 	bobClient := newTestClient(t, env)
 	bob := keys.NewEdX25519KeyFromSeed(testSeed(0x02))
-	err = bobClient.AccountCreate(ctx, bob, "bob@keys.pub")
+
+	// Alice register invite bob
+	err = aliceClient.AccountRegisterInvite(ctx, alice, "bob@keys.pub")
 	require.NoError(t, err)
 
-	// Alice invite bob
+	testAccount(t, bobClient, emailer, bob, "bob@keys.pub")
+
+	// Alice invite bob to org
 	err = aliceClient.OrgInvite(ctx, org, bob.ID(), alice)
 	require.NoError(t, err)
 
@@ -84,10 +112,6 @@ func TestOrg(t *testing.T) {
 	orgOut, err := client.DecryptKey(invites[0].EncryptedKey, bob)
 	require.NoError(t, err)
 	require.Equal(t, orgOut, org)
-
-	// Accept invite
-	err = bobClient.OrgInviteAccept(ctx, bob, orgOut)
-	require.NoError(t, err)
 
 	respVaults, err = bobClient.OrgVaults(ctx, org, nil)
 	require.NoError(t, err)

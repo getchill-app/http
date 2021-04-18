@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/http"
 	"github.com/labstack/echo/v4"
@@ -53,6 +54,22 @@ func (s *Server) auth(c echo.Context, auth *authRequest) (*http.AuthResult, erro
 		return nil, err
 	}
 	return res, nil
+}
+
+func (s *Server) authAccount(c echo.Context, param string, body []byte) (*api.Account, error) {
+	auth, err := s.auth(c, newAuthRequest("Authorization", param, body))
+	if err != nil {
+		return nil, err
+	}
+	ctx := c.Request().Context()
+	acct, err := s.findAccount(ctx, auth.KID)
+	if err != nil {
+		return nil, err
+	}
+	if acct == nil {
+		return nil, errors.Errorf("account auth failed")
+	}
+	return acct, nil
 }
 
 func newHTTPAuthRequest(c echo.Context, auth *authRequest) (*http.AuthRequest, error) {

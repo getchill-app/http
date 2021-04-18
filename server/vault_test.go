@@ -334,7 +334,7 @@ func TestVaultAccount(t *testing.T) {
 	require.NoError(t, err)
 	code, _, body := srv.Serve(req)
 	require.Equal(t, http.StatusForbidden, code)
-	require.Equal(t, `{"error":{"code":403,"message":"no account"}}`, string(body))
+	require.Equal(t, `{"error":{"code":403,"message":"account auth failed"}}`, string(body))
 
 	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
 
@@ -392,7 +392,6 @@ func TestVaultMax(t *testing.T) {
 	clock := env.clock
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
 	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
-	testVerifyEmail(t, env, srv, alice, "alice@keys.pub")
 
 	// Add too many vaults
 	for i := 0; i < 500; i++ {
@@ -407,7 +406,7 @@ func TestVaultMax(t *testing.T) {
 	require.NoError(t, err)
 	code, _, body := srv.Serve(req)
 	require.Equal(t, http.StatusForbidden, code)
-	require.Equal(t, `{"error":{"code":403,"message":"max vaults reached"}}`, string(body))
+	require.Equal(t, `{"error":{"code":403,"message":"max account vaults reached"}}`, string(body))
 }
 
 func TestVaultStatus(t *testing.T) {
@@ -471,6 +470,6 @@ func TestVaultStatus(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, 1, len(statusResp.Vaults))
 	require.Equal(t, vault.ID(), statusResp.Vaults[0].ID)
-	require.Equal(t, int64(1234567890010), statusResp.Vaults[0].Timestamp)
+	require.Equal(t, int64(1234567890015), statusResp.Vaults[0].Timestamp)
 	require.Equal(t, int64(1), statusResp.Vaults[0].Index)
 }

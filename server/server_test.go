@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/getchill-app/http/api"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
@@ -82,6 +83,10 @@ func newTestServerEnv(t *testing.T, env *env) *testServerEnv {
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)
 	handler := server.NewHandler(srv)
+
+	// Bootstrap
+	bootstrapInvite(t, env, "alice@keys.pub")
+
 	return &testServerEnv{
 		Server:  srv,
 		Handler: handler,
@@ -128,7 +133,13 @@ func testJSONUnmarshal(t *testing.T, b []byte, v interface{}) {
 	require.NoError(t, err)
 }
 
-func TestSpew(t *testing.T) {
-	// To avoid import warning when we use spew
-	spew.Sdump("testing")
+func bootstrapInvite(t *testing.T, env *env, email string) {
+	invite := api.AccountRegisterInvite{
+		Email: email,
+	}
+	err := env.fi.Set(context.TODO(), dstore.Path("account-invites", email), dstore.From(invite))
+	require.NoError(t, err)
 }
+
+// To avoid test import woes
+var _ = spew.Sdump("testing")

@@ -118,14 +118,14 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.POST("/vaults/status", s.postVaultsStatus)
 
 	// Accounts
+	e.PUT("/account/register", s.putAccountRegister)
 	e.PUT("/account/:aid", s.putAccount)
 	e.GET("/account/:aid", s.getAccount)
-	e.POST("/account/:aid/verify-email", s.postAccountVerifyEmail)
-	e.POST("/account/:aid/send-verify-email", s.postAccountSendVerifyEmail)
+	e.PUT("/account/register/invite", s.putAccountRegisterInvite)
+
 	e.GET("/account/:aid/vaults", s.getAccountVaults)
 	e.GET("/account/:aid/orgs", s.getOrgsForAccount)
-	e.GET("/account/:aid/org-invites", s.getAccountOrgInvites)
-	e.POST("/account/:aid/org/:oid/invite/accept", s.postOrgInviteAccept)
+	e.GET("/account/:aid/invites", s.getAccountOrgInvites)
 
 	e.POST("/account/:aid/auths", s.postAccountAuth)
 	e.GET("/account/:aid/auths", s.getAccountAuths)

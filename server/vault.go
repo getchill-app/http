@@ -20,31 +20,17 @@ func (s *Server) putVault(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	body, err := readBody(c, false, 64*1024)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	auth, err := s.auth(c, newAuthRequest("Authorization", "", body))
+	// Auth
+	acct, err := s.authAccount(c, "", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := acct.KID
 
 	vid, err := keys.ParseID(c.Param("vid"))
 	if err != nil {
 		return s.ErrBadRequest(c, err)
 	}
-
-	acct, err := s.findAccount(ctx, auth.KID)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	if acct == nil {
-		return s.ErrForbidden(c, errors.Errorf("no account"))
-	}
-	// if !acct.VerifiedEmail {
-	// 	return s.ErrForbidden(c, errors.Errorf("account email is not verified"))
-	// }
 
 	// Check if existing
 	existing, err := s.vault(ctx, vid)
@@ -65,8 +51,9 @@ func (s *Server) putVault(c echo.Context) error {
 
 	// Create vault
 	create := &api.Vault{
-		ID:    vid,
-		Token: token,
+		ID:        vid,
+		Token:     token,
+		CreatedBy: aid,
 	}
 	path := dstore.Path("vaults", vid)
 	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
@@ -74,20 +61,20 @@ func (s *Server) putVault(c echo.Context) error {
 	}
 
 	// Increment account vault count
-	vaultCount, _, err := s.fi.Increment(ctx, dstore.Path("accounts", auth.KID), "vaultCount", 1)
+	vaultCount, _, err := s.fi.Increment(ctx, dstore.Path("accounts", aid), "vaultCount", 1)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 	if vaultCount > 500 {
-		return s.ErrForbidden(c, errors.Errorf("max vaults reached"))
+		return s.ErrForbidden(c, errors.Errorf("max account vaults reached"))
 	}
 
 	// Save account vault
 	av := &api.AccountVault{
-		AID: auth.KID,
-		VID: vid,
+		Account: aid,
+		Vault:   vid,
 	}
-	accountPath := dstore.Path("accounts", auth.KID, "vaults", vid)
+	accountPath := dstore.Path("accounts", aid, "vaults", vid)
 	if err := s.fi.Create(ctx, accountPath, dstore.From(av)); err != nil {
 		return s.ErrResponse(c, err)
 	}

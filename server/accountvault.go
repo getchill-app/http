@@ -12,11 +12,14 @@ func (s *Server) getAccountVaults(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "aid", nil))
+	// Auth
+	acct, err := s.authAccount(c, "aid", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", auth.KID, "vaults"))
+	aid := acct.KID
+
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", aid, "vaults"))
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -37,7 +40,7 @@ func (s *Server) getAccountVaults(c echo.Context) error {
 			return s.ErrResponse(c, err)
 		}
 		avs = append(avs, &av)
-		kids = append(kids, av.VID)
+		kids = append(kids, av.Vault)
 	}
 
 	vm, err := s.vaults(ctx, kids)
@@ -45,7 +48,7 @@ func (s *Server) getAccountVaults(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 	for _, av := range avs {
-		vault, ok := vm[av.VID]
+		vault, ok := vm[av.Vault]
 		if ok {
 			av.Token = vault.Token
 			av.Usage = vault.Usage

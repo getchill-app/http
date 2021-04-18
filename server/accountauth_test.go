@@ -19,6 +19,7 @@ func TestAccountAuth(t *testing.T) {
 	clock := env.clock
 
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
 
 	// Auth method
 	mk := keys.Rand32()

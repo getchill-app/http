@@ -11,11 +11,14 @@ func (s *Server) getAccountOrgInvites(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "aid", nil))
+	// Auth
+	acct, err := s.authAccount(c, "aid", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", auth.KID, "org-invites"))
+	aid := acct.KID
+
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", aid, "invites"))
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}

@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"io/ioutil"
 
 	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys/dstore"
@@ -17,25 +16,24 @@ func (s *Server) postAccountAuth(c echo.Context) error {
 	request := c.Request()
 	ctx := request.Context()
 
-	if c.Request().Body == nil {
-		return s.ErrBadRequest(c, errors.Errorf("no body data"))
-	}
-	b, err := ioutil.ReadAll(c.Request().Body)
+	body, err := readBody(c, false, 64*1024)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "aid", b))
+	// Auth
+	acct, err := s.authAccount(c, "aid", body)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := acct.KID
 
 	var accountAuth api.AccountAuth
-	if err := json.Unmarshal(b, &accountAuth); err != nil {
+	if err := json.Unmarshal(body, &accountAuth); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
 
-	path := dstore.Path("accounts", auth.KID, "auths", accountAuth.ID)
+	path := dstore.Path("accounts", aid, "auths", accountAuth.ID)
 	if err := s.fi.Create(ctx, path, dstore.From(accountAuth)); err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -50,12 +48,14 @@ func (s *Server) getAccountAuths(c echo.Context) error {
 	request := c.Request()
 	ctx := request.Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "aid", nil))
+	// Auth
+	acct, err := s.authAccount(c, "aid", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := acct.KID
 
-	path := dstore.Path("accounts", auth.KID, "auths")
+	path := dstore.Path("accounts", aid, "auths")
 	iter, err := s.fi.DocumentIterator(ctx, path)
 	if err != nil {
 		return s.ErrResponse(c, err)
@@ -88,17 +88,19 @@ func (s *Server) deleteAuth(c echo.Context) error {
 	request := c.Request()
 	ctx := request.Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "aid", nil))
+	// Auth
+	acct, err := s.authAccount(c, "aid", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := acct.KID
 
 	id := c.Param("id")
 	if id == "" {
 		return s.ErrBadRequest(c, errors.Errorf("empty id"))
 	}
 
-	path := dstore.Path("accounts", auth.KID, "auths", id)
+	path := dstore.Path("accounts", aid, "auths", id)
 	ok, err := s.fi.Delete(ctx, path)
 	if err != nil {
 		return s.ErrResponse(c, err)

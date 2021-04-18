@@ -12,8 +12,8 @@ import (
 
 type Org struct {
 	ID         keys.ID   `json:"id"`
-	Domain     string    `json:"domain"`
 	CreatedBy  keys.ID   `json:"createdBy"`
+	Domain     string    `json:"domain,omitempty"`
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
 }
 

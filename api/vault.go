@@ -40,7 +40,8 @@ type Vault struct {
 	Usage   int64 `json:"usage,omitempty" msgpack:"usage,omitempty"`
 	Deleted bool  `json:"del,omitempty" msgpack:"del,omitempty"`
 
-	Org keys.ID `json:"org" msgpack:"org"`
+	Org       keys.ID `json:"org" msgpack:"org"`
+	CreatedBy keys.ID `json:"createdBy" msgpack:"createdBy"`
 }
 
 // VaultToken ...

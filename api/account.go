@@ -6,16 +6,24 @@ import (
 	"github.com/keys-pub/keys"
 )
 
-// Account ...
-type Account struct {
-	KID   keys.ID `json:"kid"`
-	Email string  `json:"email"`
+// AccountRegisterRequest ...
+type AccountRegisterRequest struct {
+	Email string `json:"email"`
+}
+
+type AccountUnverified struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
 
 	VerifyAttempt     int       `json:"verifyAttempt"`
 	VerifyEmailCode   string    `json:"verifyEmailCode"`
 	VerifyEmailCodeAt time.Time `json:"verifyEmailCodeAt,omitempty"`
-	VerifiedEmail     bool      `json:"verifiedEmail"`
-	VerifiedEmailAt   time.Time `json:"verifiedEmailAt,omitempty"`
+}
+
+// Account ...
+type Account struct {
+	KID   keys.ID `json:"kid"`
+	Email string  `json:"email"`
 }
 
 // SendEmailVerificationResponse ...
@@ -27,6 +35,7 @@ type SendEmailVerificationResponse struct {
 // AccountCreateRequest ...
 type AccountCreateRequest struct {
 	Email string `json:"email"`
+	Code  string `json:"code"`
 }
 
 // AccountCreateResponse ...
@@ -37,23 +46,16 @@ type AccountCreateResponse struct {
 
 // AccountResponse ...
 type AccountResponse struct {
-	Email         string  `json:"email"`
-	KID           keys.ID `json:"kid"`
-	VerifiedEmail bool    `json:"verifiedEmail"`
-}
-
-// AccountVerifyEmailRequest ...
-type AccountVerifyEmailRequest struct {
-	Email string `json:"email"`
-	Code  string `json:"code"`
+	Email string  `json:"email"`
+	KID   keys.ID `json:"kid"`
 }
 
 // AccountVault ...
 type AccountVault struct {
-	AID   keys.ID `json:"aid"`
-	VID   keys.ID `json:"vid"`
-	Token string  `json:"token"`
-	Usage int64   `json:"usage"`
+	Account keys.ID `json:"account"`
+	Vault   keys.ID `json:"vault"`
+	Token   string  `json:"token"`
+	Usage   int64   `json:"usage"`
 }
 
 // AccountVaultsResponse ...
@@ -68,4 +70,14 @@ type AccountAuth struct {
 
 type AccountAuthsResponse struct {
 	Auths []*AccountAuth `json:"auths"`
+}
+
+// AccountRegisterInviteRequest ...
+type AccountRegisterInviteRequest struct {
+	Email string `json:"email"`
+}
+
+type AccountRegisterInvite struct {
+	Email     string  `json:"email"`
+	InvitedBy keys.ID `json:"invitedBy"`
 }

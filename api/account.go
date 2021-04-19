@@ -50,6 +50,15 @@ type AccountResponse struct {
 	KID   keys.ID `json:"kid"`
 }
 
+type AccountLookupRequest struct {
+	Email string `json:"email"`
+}
+
+type AccountLookupResponse struct {
+	Email string  `json:"email"`
+	KID   keys.ID `json:"kid"`
+}
+
 // AccountVault ...
 type AccountVault struct {
 	Account keys.ID `json:"account"`

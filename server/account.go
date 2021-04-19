@@ -126,22 +126,13 @@ func (s *Server) getAccountLookup(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	body, err := readBody(c, false, 64*1024)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
 	// Auth
-	if _, err := s.authAccount(c, "", body); err != nil {
+	if _, err := s.authAccount(c, "", nil); err != nil {
 		return s.ErrForbidden(c, err)
 	}
 
-	var req api.AccountLookupRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-
-	acct, err := s.findAccountByEmail(ctx, req.Email)
+	email := c.QueryParam("email")
+	acct, err := s.findAccountByEmail(ctx, email)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}

@@ -122,6 +122,7 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.PUT("/account/:aid", s.putAccount)
 	e.PUT("/account/register/invite", s.putAccountRegisterInvite)
 	e.GET("/account/lookup", s.getAccountLookup)
+	e.GET("/account/test", s.getAccountLookup)
 	e.GET("/account", s.getAccount)
 
 	e.GET("/account/:aid/vaults", s.getAccountVaults)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -88,7 +89,7 @@ func (s *Server) putAccount(c echo.Context) error {
 
 func (s *Server) getAccount(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	acct, err := s.authAccount(c, "aid", nil)
+	acct, err := s.authAccount(c, "", nil)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
@@ -156,7 +157,7 @@ func (s *Server) getAccountLookup(c echo.Context) error {
 }
 
 func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Account, error) {
-	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", email))
+	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", strings.ToLower(email)))
 	if err != nil {
 		return nil, err
 	}

@@ -49,6 +49,8 @@ func (s *Server) putAccountRegister(c echo.Context) error {
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
+	// TODO: Throttle if already exists
+	// TODO: Don't send email if already sent recently
 	if acct == nil {
 		id := encoding.MustEncode(keys.RandBytes(32), encoding.Base62)
 		path := dstore.Path(accountsUnverified, id)
@@ -60,8 +62,6 @@ func (s *Server) putAccountRegister(c echo.Context) error {
 		if err := s.fi.Create(ctx, path, dstore.From(acct)); err != nil {
 			return s.ErrResponse(c, err)
 		}
-	} else {
-		// TODO: Throttle if already exists
 	}
 
 	if err := s.sendEmailVerification(c, acct); err != nil {

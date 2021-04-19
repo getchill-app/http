@@ -20,8 +20,8 @@ func TestAccountCreate(t *testing.T) {
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
 	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
 
-	// GET /account/:aid
-	req, err := http.NewAuthRequest("GET", dstore.Path("account", alice.ID()), nil, "", clock.Now(), alice)
+	// GET /account
+	req, err := http.NewAuthRequest("GET", "/account", nil, "", clock.Now(), alice)
 	require.NoError(t, err)
 	code, _, body := srv.Serve(req)
 	account := api.Account{}

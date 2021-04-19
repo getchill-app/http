@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -34,8 +35,9 @@ func (s *Server) putAccountRegister(c echo.Context) error {
 	if err := checkmail.ValidateFormat(req.Email); err != nil {
 		return s.ErrBadRequest(c, errors.Errorf("invalid email"))
 	}
+	email := strings.ToLower(req.Email)
 
-	invited, err := s.registerEmailInvited(ctx, req.Email)
+	invited, err := s.registerEmailInvited(ctx, email)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -43,7 +45,7 @@ func (s *Server) putAccountRegister(c echo.Context) error {
 		return s.ErrBadRequest(c, errors.Errorf("not invited"))
 	}
 
-	acct, err := s.findUnverifiedAccountByEmail(ctx, req.Email)
+	acct, err := s.findUnverifiedAccountByEmail(ctx, email)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -91,6 +93,8 @@ func (s *Server) findUnverifiedAccountByEmail(ctx context.Context, email string)
 
 func (s *Server) sendEmailVerification(c echo.Context, acct *api.AccountUnverified) error {
 	ctx := c.Request().Context()
+
+	// TODO: Throttle exponential backoff
 
 	verifyCode := keys.RandDigits(6)
 	update := struct {

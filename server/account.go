@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/badoux/checkmail"
 	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
@@ -33,6 +34,9 @@ func (s *Server) putAccount(c echo.Context) error {
 	var req api.AccountCreateRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
+	}
+	if err := checkmail.ValidateFormat(req.Email); err != nil {
+		return s.ErrBadRequest(c, errors.Errorf("invalid email"))
 	}
 
 	unverifiedAcct, err := s.findUnverifiedAccountByEmail(ctx, req.Email)
@@ -114,5 +118,59 @@ func (s *Server) findAccount(ctx context.Context, kid keys.ID) (*api.Account, er
 		return nil, err
 	}
 
+	return &acct, nil
+}
+
+func (s *Server) getAccountLookup(c echo.Context) error {
+	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
+	ctx := c.Request().Context()
+
+	body, err := readBody(c, false, 64*1024)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	// Auth
+	if _, err := s.authAccount(c, "", body); err != nil {
+		return s.ErrForbidden(c, err)
+	}
+
+	var req api.AccountLookupRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return s.ErrBadRequest(c, err)
+	}
+
+	acct, err := s.findAccountByEmail(ctx, req.Email)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+	if acct == nil {
+		return s.ErrNotFound(c, errors.Errorf("account not found"))
+	}
+
+	out := &api.AccountLookupResponse{
+		Email: acct.Email,
+		KID:   acct.KID,
+	}
+	return c.JSON(http.StatusOK, out)
+}
+
+func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Account, error) {
+	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", email))
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Release()
+	doc, err := iter.Next()
+	if err != nil {
+		return nil, err
+	}
+	if doc == nil {
+		return nil, nil
+	}
+	var acct api.Account
+	if err := doc.To(&acct); err != nil {
+		return nil, err
+	}
 	return &acct, nil
 }

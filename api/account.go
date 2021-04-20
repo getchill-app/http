@@ -41,8 +41,9 @@ type AccountCreateRequest struct {
 
 // AccountResponse ...
 type AccountResponse struct {
-	Email string  `json:"email"`
-	KID   keys.ID `json:"kid"`
+	Email    string  `json:"email"`
+	KID      keys.ID `json:"kid"`
+	Username string  `json:"username"`
 }
 
 // AccountVault ...

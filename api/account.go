@@ -22,8 +22,9 @@ type AccountUnverified struct {
 
 // Account ...
 type Account struct {
-	KID   keys.ID `json:"kid"`
-	Email string  `json:"email"`
+	KID      keys.ID `json:"kid"`
+	Email    string  `json:"email"`
+	Username string  `json:"username"`
 }
 
 // SendEmailVerificationResponse ...
@@ -38,23 +39,8 @@ type AccountCreateRequest struct {
 	Code  string `json:"code"`
 }
 
-// AccountCreateResponse ...
-type AccountCreateResponse struct {
-	Email string  `json:"email"`
-	KID   keys.ID `json:"kid"`
-}
-
 // AccountResponse ...
 type AccountResponse struct {
-	Email string  `json:"email"`
-	KID   keys.ID `json:"kid"`
-}
-
-type AccountLookupRequest struct {
-	Email string `json:"email"`
-}
-
-type AccountLookupResponse struct {
 	Email string  `json:"email"`
 	KID   keys.ID `json:"kid"`
 }

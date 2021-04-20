@@ -93,8 +93,9 @@ func (s *Server) getAccount(c echo.Context) error {
 		return s.ErrForbidden(c, err)
 	}
 	out := &api.AccountResponse{
-		Email: acct.Email,
-		KID:   acct.KID,
+		Email:    acct.Email,
+		KID:      acct.KID,
+		Username: acct.Username,
 	}
 	return c.JSON(http.StatusOK, out)
 }

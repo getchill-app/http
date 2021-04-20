@@ -69,6 +69,10 @@ type OrgInvite struct {
 	EncryptedKey []byte `json:"ek"`
 }
 
+func (i OrgInvite) DecryptKey(key *keys.EdX25519Key) (*keys.EdX25519Key, error) {
+	return DecryptKey(i.EncryptedKey, key)
+}
+
 // OrgInvitesResponse ...
 type OrgInvitesResponse struct {
 	Invites []*OrgInvite `json:"invites"`

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"regexp"
 	"strings"
 	"time"
 
@@ -65,6 +66,7 @@ func (s *Server) putAccount(c echo.Context) error {
 		return s.ErrBadRequest(c, errors.Errorf("invalid code"))
 	}
 
+	// Create account
 	path := dstore.Path("accounts", auth.KID)
 
 	acct := &api.Account{
@@ -80,10 +82,7 @@ func (s *Server) putAccount(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 
-	out := &api.AccountCreateResponse{
-		Email: acct.Email,
-		KID:   acct.KID,
-	}
+	var out struct{}
 	return JSON(c, http.StatusOK, out)
 }
 
@@ -122,31 +121,6 @@ func (s *Server) findAccount(ctx context.Context, kid keys.ID) (*api.Account, er
 	return &acct, nil
 }
 
-func (s *Server) getAccountLookup(c echo.Context) error {
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	ctx := c.Request().Context()
-
-	// Auth
-	if _, err := s.authAccount(c, "", nil); err != nil {
-		return s.ErrForbidden(c, err)
-	}
-
-	email := c.QueryParam("email")
-	acct, err := s.findAccountByEmail(ctx, email)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	if acct == nil {
-		return s.ErrNotFound(c, errors.Errorf("account not found"))
-	}
-
-	out := &api.AccountLookupResponse{
-		Email: acct.Email,
-		KID:   acct.KID,
-	}
-	return c.JSON(http.StatusOK, out)
-}
-
 func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Account, error) {
 	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", strings.ToLower(email)))
 	if err != nil {
@@ -165,4 +139,60 @@ func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Acc
 		return nil, err
 	}
 	return &acct, nil
+}
+
+func (s *Server) postAccountUsername(c echo.Context) error {
+	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
+	ctx := c.Request().Context()
+
+	body, err := readBody(c, false, 64*1024)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	// Auth
+	acct, err := s.authAccount(c, "", body)
+	if err != nil {
+		return s.ErrForbidden(c, err)
+	}
+	aid := acct.KID
+
+	if acct.Username != "" {
+		return s.ErrBadRequest(c, errors.Errorf("username already set"))
+	}
+
+	username := c.QueryParam("username")
+
+	if len(username) > 16 {
+		return s.ErrBadRequest(c, errors.Errorf("invalid username"))
+	}
+	match, _ := regexp.MatchString("^[a-z0-9]*$", username)
+	if !match {
+		return s.ErrBadRequest(c, errors.Errorf("invalid username"))
+	}
+
+	// Check unique
+	indexPath := dstore.Path("index", "accounts", "usernames", username)
+	index := struct {
+		KID keys.ID `json:"kid"`
+	}{
+		KID: acct.KID,
+	}
+	if err := s.fi.Create(ctx, indexPath, dstore.From(index)); err != nil {
+		return err
+	}
+
+	update := struct {
+		Username string `json:"username"`
+	}{
+		Username: username,
+	}
+
+	path := dstore.Path("accounts", aid)
+	if err := s.fi.Set(ctx, path, dstore.From(update), dstore.MergeAll()); err != nil {
+		return err
+	}
+
+	var out struct{}
+	return c.JSON(http.StatusOK, out)
 }

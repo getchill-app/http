@@ -121,8 +121,8 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.PUT("/account/register", s.putAccountRegister)
 	e.PUT("/account/:aid", s.putAccount)
 	e.PUT("/account/register/invite", s.putAccountRegisterInvite)
-	e.GET("/account/lookup", s.getAccountLookup)
 	e.GET("/account", s.getAccount)
+	e.POST("/account/username", s.postAccountUsername)
 
 	e.GET("/account/:aid/vaults", s.getAccountVaults)
 	e.GET("/account/:aid/orgs", s.getOrgsForAccount)
@@ -138,6 +138,9 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.PUT("/org/:oid/vault", s.putOrgVault)
 	e.GET("/org/:oid/vaults", s.getVaultsForOrg)
 	e.PUT("/org/:oid/invite", s.putOrgInvite)
+
+	// User
+	e.GET("/user/lookup", s.getUserLookup)
 }
 
 // SetClock sets clock.

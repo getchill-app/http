@@ -46,7 +46,7 @@ func testVault(t *testing.T, env *env, vault *keys.EdX25519Key, alice *keys.EdX2
 	srv := newTestServerEnv(t, env)
 	clock := env.clock
 
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 
 	rand := keys.GenerateEdX25519Key()
 
@@ -267,7 +267,7 @@ func testVaultAuth(t *testing.T, env *env, vault *keys.EdX25519Key, alice *keys.
 
 	randKey := keys.GenerateEdX25519Key()
 
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 
 	// GET /vault/:vid (no auth)
 	req, err := http.NewRequest("GET", dstore.Path("vault", vault.ID()), nil)
@@ -336,7 +336,7 @@ func TestVaultAccount(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, code)
 	require.Equal(t, `{"error":{"code":403,"message":"account auth failed"}}`, string(body))
 
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 
 	// // PUT /vault/:aid (as alice, unverified)
 	// req, err = http.NewAuthRequest("PUT", dstore.Path("vault", vault.ID()), nil, "", clock.Now(), alice)
@@ -391,7 +391,7 @@ func TestVaultMax(t *testing.T) {
 	srv := newTestServerEnv(t, env)
 	clock := env.clock
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 
 	// Add too many vaults
 	for i := 0; i < 500; i++ {
@@ -417,7 +417,7 @@ func TestVaultStatus(t *testing.T) {
 	clock := env.clock
 
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 	vault := keys.NewEdX25519KeyFromSeed(testSeed(0xc0))
 
 	// PUT /vault/:vid
@@ -470,6 +470,6 @@ func TestVaultStatus(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, 1, len(statusResp.Vaults))
 	require.Equal(t, vault.ID(), statusResp.Vaults[0].ID)
-	require.Equal(t, int64(1234567890015), statusResp.Vaults[0].Timestamp)
+	require.Equal(t, int64(1234567890016), statusResp.Vaults[0].Timestamp)
 	require.Equal(t, int64(1), statusResp.Vaults[0].Index)
 }

@@ -86,6 +86,8 @@ github.com/getchill-app/http/api v0.0.0-20210418184534-d661ca3c7aa9 h1:Ej6Y1v804
 github.com/getchill-app/http/api v0.0.0-20210418184534-d661ca3c7aa9/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
 github.com/getchill-app/http/api v0.0.0-20210419152012-bcd0629c5921 h1:ljOoNhMcLgD/3p2lKbbJYY1Zah8XOkoAiFaEIRSl86c=
 github.com/getchill-app/http/api v0.0.0-20210419152012-bcd0629c5921/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
+github.com/getchill-app/http/api v0.0.0-20210420180345-7d76f789b970 h1:z8wCfirNOt+p31uEL84Dy0a1iqCW8+Kda5zAOPa5LpQ=
+github.com/getchill-app/http/api v0.0.0-20210420180345-7d76f789b970/go.mod h1:DGSr0WOBrmYUMwI1vAk2UDQ8UjRhE3EsXqQ6Tx17TFc=
 github.com/getchill-app/server v0.0.0-20210403011736-cb8e3ad4de38/go.mod h1:0SqZtNl5RL0zX9CJed1QT4jOsVFAxbH7WOkzuFiuSOc=
 github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c h1:uBZQCl7bZe4hShMwZfmFrBSBFyb5qHKIy1DRIKwusS8=
 github.com/getchill-app/server v0.0.0-20210403215008-63eeb378e83c/go.mod h1:0SqZtNl5RL0zX9CJed1QT4jOsVFAxbH7WOkzuFiuSOc=

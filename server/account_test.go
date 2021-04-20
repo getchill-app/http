@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/getchill-app/http/api"
@@ -18,7 +17,7 @@ func TestAccountCreate(t *testing.T) {
 	clock := env.clock
 
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	testAccountCreate(t, env, srv, alice, "alice@keys.pub")
+	testAccountCreate(t, env, srv, alice, "alice@keys.pub", "alice")
 
 	// GET /account
 	req, err := http.NewAuthRequest("GET", "/account", nil, "", clock.Now(), alice)
@@ -54,7 +53,7 @@ func TestAccountEmailCodeTooManyAttempts(t *testing.T) {
 	// TODO
 }
 
-func testAccountCreate(t *testing.T, env *env, srv *testServerEnv, key *keys.EdX25519Key, email string) {
+func testAccountCreate(t *testing.T, env *env, srv *testServerEnv, key *keys.EdX25519Key, email string, username string) {
 	// PUT /account/register
 	req, err := http.NewJSONRequest("PUT", "/account/register", &api.AccountRegisterRequest{Email: email}, http.WithTimestamp(env.clock.Now()), http.SignedWith(key))
 	require.NoError(t, err)
@@ -69,11 +68,9 @@ func testAccountCreate(t *testing.T, env *env, srv *testServerEnv, key *keys.EdX
 	req, err = http.NewJSONRequest("PUT", dstore.Path("account", key.ID()), createReq, http.WithTimestamp(env.clock.Now()), http.SignedWith(key))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)
-	create := api.AccountCreateResponse{}
-	err = json.Unmarshal(body, &create)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, code)
-	require.Equal(t, key.ID(), create.KID)
+	require.Equal(t, `{}`, string(body))
 }
 
 func TestAccountInvalidCode(t *testing.T) {

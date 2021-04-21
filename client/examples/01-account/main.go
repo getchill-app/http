@@ -15,6 +15,7 @@ import (
 func main() {
 	email := flag.String("email", "", "Email to register")
 	code := flag.String("code", "", "Registration code")
+	username := flag.String("username", "", "Username")
 	flag.Parse()
 
 	cl, err := client.New("https://getchill.app/")
@@ -38,6 +39,9 @@ func main() {
 		fmt.Printf("Generated account key:\n%s\n", out)
 
 		if err := cl.AccountCreate(context.TODO(), accountKey, *email, *code); err != nil {
+			log.Fatal(err)
+		}
+		if err := cl.AccountSetUsername(context.TODO(), accountKey, *username); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Printf("Account created.\n")

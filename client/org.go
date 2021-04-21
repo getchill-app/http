@@ -49,7 +49,7 @@ func (c *Client) OrgSign(org *keys.EdX25519Key, domain string, ts time.Time) (st
 }
 
 func (c *Client) OrgCreateVault(ctx context.Context, org keys.ID, account *keys.EdX25519Key, vault *keys.EdX25519Key) (*api.Vault, error) {
-	ek, err := encryptKey(vault, org)
+	ek, err := api.EncryptKey(vault, org)
 	if err != nil {
 		return nil, err
 	}
@@ -69,26 +69,6 @@ func (c *Client) OrgCreateVault(ctx context.Context, org keys.ID, account *keys.
 		return nil, err
 	}
 	return &out, nil
-}
-
-func encryptKey(key *keys.EdX25519Key, to keys.ID) ([]byte, error) {
-	pk, err := keys.NewEdX25519PublicKeyFromID(to)
-	if err != nil {
-		return nil, err
-	}
-	encryptedKey := keys.CryptoBoxSeal(key.Seed()[:], pk.X25519PublicKey())
-	return encryptedKey, nil
-}
-
-func DecryptKey(b []byte, key *keys.EdX25519Key) (*keys.EdX25519Key, error) {
-	decrypted, err := keys.CryptoBoxSealOpen(b, key.X25519Key())
-	if err != nil {
-		return nil, err
-	}
-	if len(decrypted) != 32 {
-		return nil, errors.Errorf("invalid encrypted key")
-	}
-	return keys.NewEdX25519KeyFromSeed(keys.Bytes32(decrypted)), nil
 }
 
 type OrgVaultsOpts struct {
@@ -124,7 +104,7 @@ func (c *Client) OrgInvite(ctx context.Context, org *keys.EdX25519Key, invite ke
 		{Header: "Authorization", Key: invitedBy},
 		{Header: "Authorization-Org", Key: org},
 	}
-	ek, err := encryptKey(org, invite)
+	ek, err := api.EncryptKey(org, invite)
 	if err != nil {
 		return err
 	}

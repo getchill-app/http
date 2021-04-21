@@ -29,9 +29,28 @@ func TestAccount(t *testing.T) {
 	err = client.AccountCreate(ctx, alice, "alice@keys.pub", code)
 	require.NoError(t, err)
 
+	err = client.AccountSetUsername(ctx, alice, "alice")
+	require.NoError(t, err)
+	err = client.AccountSetUsername(ctx, alice, "alice2")
+	require.EqualError(t, err, "username already set (400)")
+
 	resp, err := client.Account(ctx, alice)
 	require.NoError(t, err)
 	require.Equal(t, "alice@keys.pub", resp.Email)
+	require.Equal(t, "alice", resp.Username)
+
+	lookup, err := client.UserLookup(ctx, "alice@keys.pub", alice)
+	require.NoError(t, err)
+	require.Equal(t, lookup.KID, alice.ID())
+	require.Equal(t, lookup.Username, "alice")
+
+	lookup, err = client.UserLookup(ctx, "unknown+test@keys.pub", alice)
+	require.NoError(t, err)
+	require.Nil(t, lookup)
+
+	lookup, err = client.UserLookup(ctx, "", alice)
+	require.NoError(t, err)
+	require.Nil(t, lookup)
 
 	mk := keys.Rand32()
 	pw, err := auth.NewPassword("testpassword", mk)
@@ -48,7 +67,7 @@ func TestAccount(t *testing.T) {
 	require.EqualError(t, err, "invalid email (400)")
 }
 
-func testAccount(t *testing.T, cl *client.Client, emailer *testEmailer, key *keys.EdX25519Key, email string) {
+func testAccount(t *testing.T, cl *client.Client, emailer *testEmailer, key *keys.EdX25519Key, email string, username string) {
 	var err error
 	ctx := context.TODO()
 
@@ -57,5 +76,7 @@ func testAccount(t *testing.T, cl *client.Client, emailer *testEmailer, key *key
 	code := emailer.SentVerificationEmail(email)
 	require.NotEmpty(t, code)
 	err = cl.AccountCreate(ctx, key, email, code)
+	require.NoError(t, err)
+	err = cl.AccountSetUsername(ctx, key, username)
 	require.NoError(t, err)
 }

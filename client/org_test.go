@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/getchill-app/http/api"
 	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
@@ -25,7 +26,7 @@ func TestOrgSetup(t *testing.T) {
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
 	org := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
 
-	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub")
+	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub", "alice")
 
 	err = aliceClient.OrgCreate(ctx, org, alice)
 	require.NoError(t, err)
@@ -47,7 +48,7 @@ func TestOrgDomain(t *testing.T) {
 	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
 	org := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
 
-	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub")
+	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub", "alice")
 
 	st, err := aliceClient.OrgSign(org, "test.domain", time.Now())
 	require.NoError(t, err)
@@ -86,7 +87,7 @@ func TestOrgDomain(t *testing.T) {
 	require.Equal(t, 1, len(respVaults.Vaults))
 	require.Equal(t, channel.ID(), respVaults.Vaults[0].ID)
 
-	channelOut, err := client.DecryptKey(respVaults.Vaults[0].EncryptedKey, org)
+	channelOut, err := api.DecryptKey(respVaults.Vaults[0].EncryptedKey, org)
 	require.NoError(t, err)
 	require.Equal(t, channelOut, channel)
 
@@ -98,7 +99,7 @@ func TestOrgDomain(t *testing.T) {
 	err = aliceClient.AccountRegisterInvite(ctx, alice, "bob@keys.pub")
 	require.NoError(t, err)
 
-	testAccount(t, bobClient, emailer, bob, "bob@keys.pub")
+	testAccount(t, bobClient, emailer, bob, "bob@keys.pub", "bob")
 
 	// Alice invite bob to org
 	err = aliceClient.OrgInvite(ctx, org, bob.ID(), alice)
@@ -109,7 +110,7 @@ func TestOrgDomain(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(invites))
 	require.Equal(t, "test.domain", invites[0].Domain)
-	orgOut, err := client.DecryptKey(invites[0].EncryptedKey, bob)
+	orgOut, err := api.DecryptKey(invites[0].EncryptedKey, bob)
 	require.NoError(t, err)
 	require.Equal(t, orgOut, org)
 

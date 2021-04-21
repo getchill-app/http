@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 
 	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys"
@@ -39,7 +40,7 @@ func (c *Client) AccountCreate(ctx context.Context, account *keys.EdX25519Key, e
 }
 
 func (c *Client) Account(ctx context.Context, account *keys.EdX25519Key) (*api.AccountResponse, error) {
-	path := dstore.Path("account", account.ID())
+	path := "/account"
 	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: account})
 	if err != nil {
 		return nil, err
@@ -49,6 +50,17 @@ func (c *Client) Account(ctx context.Context, account *keys.EdX25519Key) (*api.A
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *Client) AccountSetUsername(ctx context.Context, account *keys.EdX25519Key, username string) error {
+	path := "/account/username"
+	params := url.Values{}
+	params.Set("username", username)
+	_, err := c.Request(ctx, &client.Request{Method: "POST", Path: path, Params: params, Key: account})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) AccountAuthSave(ctx context.Context, account *keys.EdX25519Key, auth *auth.Auth) error {

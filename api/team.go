@@ -13,6 +13,7 @@ import (
 type Team struct {
 	ID         keys.ID   `json:"id"`
 	CreatedBy  keys.ID   `json:"createdBy"`
+	Token      string    `json:"token"`
 	Domain     string    `json:"domain,omitempty"`
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
 }
@@ -61,7 +62,7 @@ type TeamInviteRequest struct {
 
 // TeamInvite ...
 type TeamInvite struct {
-	Team      keys.ID `json:"oid"`
+	Team      keys.ID `json:"team"`
 	Domain    string  `json:"domain"`
 	Invite    keys.ID `json:"invite"`
 	InvitedBy keys.ID `json:"invitedBy"`

@@ -30,7 +30,7 @@ func (s *Server) putTeam(c echo.Context) error {
 	}
 	aid := acct.KID
 
-	oid, err := keys.ParseID(c.Param("oid"))
+	tid, err := keys.ParseID(c.Param("tid"))
 	if err != nil {
 		return s.ErrBadRequest(c, err)
 	}
@@ -40,10 +40,16 @@ func (s *Server) putTeam(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
+	token, err := s.GenerateToken()
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
 	team := &api.Team{
-		ID:        oid,
+		ID:        tid,
 		Domain:    req.Domain,
 		CreatedBy: aid,
+		Token:     token,
 	}
 
 	if req.Domain != "" {
@@ -63,7 +69,7 @@ func (s *Server) putTeam(c echo.Context) error {
 		team.VerifiedAt = s.clock.Now()
 	}
 
-	path := dstore.Path("teams", oid)
+	path := dstore.Path("teams", tid)
 	if err := s.fi.Create(ctx, path, dstore.From(team)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:
@@ -99,7 +105,7 @@ func (s *Server) getTeam(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "oid", nil))
+	auth, err := s.auth(c, newAuthRequest("Authorization", "tid", nil))
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
@@ -235,7 +241,7 @@ func (s *Server) putTeamVault(c echo.Context) error {
 	}
 	aid := acct.KID
 
-	oid, err := keys.ParseID(c.Param("oid"))
+	tid, err := keys.ParseID(c.Param("tid"))
 	if err != nil {
 		return s.ErrBadRequest(c, err)
 	}
@@ -249,16 +255,19 @@ func (s *Server) putTeamVault(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	token, err := s.GenerateToken()
+	team, err := s.findTeam(ctx, tid)
 	if err != nil {
-		return s.ErrResponse(c, err)
+		return s.ErrBadRequest(c, err)
+	}
+	if team == nil {
+		return s.ErrBadRequest(c, errors.Errorf("invalid team"))
 	}
 
 	// Create vault
 	create := &api.Vault{
 		ID:        vid,
-		Token:     token,
-		Team:      oid,
+		Token:     team.Token,
+		Team:      tid,
 		CreatedBy: aid,
 	}
 	path := dstore.Path("vaults", vid)
@@ -270,7 +279,7 @@ func (s *Server) putTeamVault(c echo.Context) error {
 		KID:          vid,
 		EncryptedKey: req.EncyptedKey,
 	}
-	teamVaultPath := dstore.Path("teams", oid, "vaults", vid)
+	teamVaultPath := dstore.Path("teams", tid, "vaults", vid)
 	if err := s.fi.Create(ctx, teamVaultPath, dstore.From(ov)); err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -282,7 +291,7 @@ func (s *Server) getVaultsForTeam(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "oid", nil))
+	auth, err := s.auth(c, newAuthRequest("Authorization", "tid", nil))
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
@@ -357,11 +366,11 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 	}
 	aid := acct.KID
 
-	authTeam, err := s.auth(c, &authRequest{Header: "Authorization-Team", Param: "oid", Content: body, NonceCheck: nonceAlreadyChecked()})
+	authTeam, err := s.auth(c, &authRequest{Header: "Authorization-Team", Param: "tid", Content: body, NonceCheck: nonceAlreadyChecked()})
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	oid := authTeam.KID
+	tid := authTeam.KID
 
 	var req api.TeamInviteRequest
 	if err := json.Unmarshal(body, &req); err != nil {
@@ -372,7 +381,7 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	team, err := s.findTeam(ctx, oid)
+	team, err := s.findTeam(ctx, tid)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -381,14 +390,14 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 	}
 
 	teamInvite := &api.TeamInvite{
-		Team:         oid,
+		Team:         tid,
 		Domain:       team.Domain,
 		Invite:       invite,
 		InvitedBy:    aid,
 		EncryptedKey: req.EncryptedKey,
 	}
 
-	path := dstore.Path("teams", oid, "invites", invite)
+	path := dstore.Path("teams", tid, "invites", invite)
 	if err := s.fi.Create(ctx, path, dstore.From(teamInvite)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:
@@ -396,7 +405,7 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 		}
 	}
 
-	accountPath := dstore.Path("accounts", invite, "invites", oid)
+	accountPath := dstore.Path("accounts", invite, "invites", tid)
 	if err := s.fi.Create(ctx, accountPath, dstore.From(teamInvite)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:

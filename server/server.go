@@ -133,11 +133,11 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.DELETE("/account/:aid/auth/:id", s.deleteAuth)
 
 	// Team
-	e.PUT("/team/:oid", s.putTeam)
-	e.GET("/team/:oid", s.getTeam)
-	e.PUT("/team/:oid/vault", s.putTeamVault)
-	e.GET("/team/:oid/vaults", s.getVaultsForTeam)
-	e.PUT("/team/:oid/invite", s.putTeamInvite)
+	e.PUT("/team/:tid", s.putTeam)
+	e.GET("/team/:tid", s.getTeam)
+	e.PUT("/team/:tid/vault", s.putTeamVault)
+	e.GET("/team/:tid/vaults", s.getVaultsForTeam)
+	e.PUT("/team/:tid/invite", s.putTeamInvite)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)

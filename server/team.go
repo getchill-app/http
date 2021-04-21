@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *Server) putOrg(c echo.Context) error {
+func (s *Server) putTeam(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -35,48 +35,48 @@ func (s *Server) putOrg(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	var req api.OrgCreateRequest
+	var req api.TeamCreateRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
 
-	org := &api.Org{
+	team := &api.Team{
 		ID:        oid,
 		Domain:    req.Domain,
 		CreatedBy: aid,
 	}
 
 	if req.Domain != "" {
-		existing, err := s.findOrgByDomain(ctx, req.Domain)
+		existing, err := s.findTeamByDomain(ctx, req.Domain)
 		if err != nil {
 			return s.ErrResponse(c, err)
 		}
 		if existing != nil {
-			return s.ErrConflict(c, errors.Errorf("org domain already exists"))
+			return s.ErrConflict(c, errors.Errorf("team domain already exists"))
 		}
 
-		// Verify org
+		// Verify team
 		// TODO: Rate limit
-		if err := s.verifyOrg(ctx, org); err != nil {
+		if err := s.verifyTeam(ctx, team); err != nil {
 			return s.ErrBadRequest(c, errors.Wrapf(err, "failed to verify domain"))
 		}
-		org.VerifiedAt = s.clock.Now()
+		team.VerifiedAt = s.clock.Now()
 	}
 
-	path := dstore.Path("orgs", oid)
-	if err := s.fi.Create(ctx, path, dstore.From(org)); err != nil {
+	path := dstore.Path("teams", oid)
+	if err := s.fi.Create(ctx, path, dstore.From(team)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:
-			return s.ErrConflict(c, errors.Errorf("org already exists"))
+			return s.ErrConflict(c, errors.Errorf("team already exists"))
 		}
 		return s.ErrResponse(c, err)
 	}
 
-	return JSON(c, http.StatusOK, org)
+	return JSON(c, http.StatusOK, team)
 }
 
-func (s *Server) findOrgByDomain(ctx context.Context, domain string) (*api.Org, error) {
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("orgs"), dstore.Where("domain", "==", domain))
+func (s *Server) findTeamByDomain(ctx context.Context, domain string) (*api.Team, error) {
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("teams"), dstore.Where("domain", "==", domain))
 	if err != nil {
 		return nil, err
 	}
@@ -88,14 +88,14 @@ func (s *Server) findOrgByDomain(ctx context.Context, domain string) (*api.Org, 
 	if doc == nil {
 		return nil, nil
 	}
-	var org api.Org
-	if err := doc.To(&org); err != nil {
+	var team api.Team
+	if err := doc.To(&team); err != nil {
 		return nil, err
 	}
-	return &org, nil
+	return &team, nil
 }
 
-func (s *Server) getOrg(c echo.Context) error {
+func (s *Server) getTeam(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -103,21 +103,21 @@ func (s *Server) getOrg(c echo.Context) error {
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	org, err := s.findOrg(ctx, auth.KID)
+	team, err := s.findTeam(ctx, auth.KID)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
-	if org == nil {
-		return s.ErrNotFound(c, errors.Errorf("org not found"))
+	if team == nil {
+		return s.ErrNotFound(c, errors.Errorf("team not found"))
 	}
-	return c.JSON(http.StatusOK, org)
+	return c.JSON(http.StatusOK, team)
 }
 
-func (s *Server) findOrg(ctx context.Context, kid keys.ID) (*api.Org, error) {
+func (s *Server) findTeam(ctx context.Context, kid keys.ID) (*api.Team, error) {
 	if kid == "" {
 		return nil, errors.Errorf("empty kid")
 	}
-	path := dstore.Path("orgs", kid)
+	path := dstore.Path("teams", kid)
 
 	doc, err := s.fi.Get(ctx, path)
 	if err != nil {
@@ -127,16 +127,16 @@ func (s *Server) findOrg(ctx context.Context, kid keys.ID) (*api.Org, error) {
 		return nil, nil
 	}
 
-	var org api.Org
-	if err := doc.To(&org); err != nil {
+	var team api.Team
+	if err := doc.To(&team); err != nil {
 		return nil, err
 	}
 
-	return &org, nil
+	return &team, nil
 }
 
-func (s *Server) verifyOrg(ctx context.Context, org *api.Org) error {
-	url := fmt.Sprintf("https://%s/.well-known/getchill.txt", org.Domain)
+func (s *Server) verifyTeam(ctx context.Context, team *api.Team) error {
+	url := fmt.Sprintf("https://%s/.well-known/getchill.txt", team.Domain)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -145,13 +145,13 @@ func (s *Server) verifyOrg(ctx context.Context, org *api.Org) error {
 	if err != nil {
 		return err
 	}
-	if err := org.Verify(string(res)); err != nil {
+	if err := team.Verify(string(res)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Server) getOrgsForAccount(c echo.Context) error {
+func (s *Server) getTeamsForAccount(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -162,13 +162,13 @@ func (s *Server) getOrgsForAccount(c echo.Context) error {
 	}
 	aid := acct.KID
 
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", aid, "orgs"))
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", aid, "teams"))
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 	defer iter.Release()
 
-	orgs := []*api.Org{}
+	teams := []*api.Team{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -177,31 +177,31 @@ func (s *Server) getOrgsForAccount(c echo.Context) error {
 		if doc == nil {
 			break
 		}
-		var org api.Org
-		if err := doc.To(&org); err != nil {
+		var team api.Team
+		if err := doc.To(&team); err != nil {
 			return s.ErrResponse(c, err)
 		}
-		orgs = append(orgs, &org)
+		teams = append(teams, &team)
 	}
 
-	out := api.OrgsResponse{Orgs: orgs}
+	out := api.TeamsResponse{Teams: teams}
 	return c.JSON(http.StatusOK, out)
 }
 
-type orgVault struct {
+type teamVault struct {
 	KID          keys.ID `json:"kid"`
 	EncryptedKey []byte  `json:"ek"`
 }
 
-func (s *Server) vaultsForOrg(c echo.Context, kid keys.ID) ([]*orgVault, error) {
+func (s *Server) vaultsForTeam(c echo.Context, kid keys.ID) ([]*teamVault, error) {
 	ctx := c.Request().Context()
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("orgs", kid, "vaults"))
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("teams", kid, "vaults"))
 	if err != nil {
 		return nil, err
 	}
 	defer iter.Release()
 
-	ovs := []*orgVault{}
+	ovs := []*teamVault{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -210,7 +210,7 @@ func (s *Server) vaultsForOrg(c echo.Context, kid keys.ID) ([]*orgVault, error) 
 		if doc == nil {
 			break
 		}
-		var ov orgVault
+		var ov teamVault
 		if err := doc.To(&ov); err != nil {
 			return nil, err
 		}
@@ -219,7 +219,7 @@ func (s *Server) vaultsForOrg(c echo.Context, kid keys.ID) ([]*orgVault, error) 
 	return ovs, nil
 }
 
-func (s *Server) putOrgVault(c echo.Context) error {
+func (s *Server) putTeamVault(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -240,7 +240,7 @@ func (s *Server) putOrgVault(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	var req api.OrgVaultCreateRequest
+	var req api.TeamVaultCreateRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
@@ -258,7 +258,7 @@ func (s *Server) putOrgVault(c echo.Context) error {
 	create := &api.Vault{
 		ID:        vid,
 		Token:     token,
-		Org:       oid,
+		Team:      oid,
 		CreatedBy: aid,
 	}
 	path := dstore.Path("vaults", vid)
@@ -266,19 +266,19 @@ func (s *Server) putOrgVault(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 
-	ov := &orgVault{
+	ov := &teamVault{
 		KID:          vid,
 		EncryptedKey: req.EncyptedKey,
 	}
-	orgVaultPath := dstore.Path("orgs", oid, "vaults", vid)
-	if err := s.fi.Create(ctx, orgVaultPath, dstore.From(ov)); err != nil {
+	teamVaultPath := dstore.Path("teams", oid, "vaults", vid)
+	if err := s.fi.Create(ctx, teamVaultPath, dstore.From(ov)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
 	return JSON(c, http.StatusOK, create)
 }
 
-func (s *Server) getVaultsForOrg(c echo.Context) error {
+func (s *Server) getVaultsForTeam(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -289,7 +289,7 @@ func (s *Server) getVaultsForOrg(c echo.Context) error {
 
 	includeEncryptedKey := c.QueryParam("ek") == "1"
 
-	ovs, err := s.vaultsForOrg(c, auth.KID)
+	ovs, err := s.vaultsForTeam(c, auth.KID)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -309,7 +309,7 @@ func (s *Server) getVaultsForOrg(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 
-	vaults := make([]*api.OrgVault, 0, len(docs))
+	vaults := make([]*api.TeamVault, 0, len(docs))
 	for _, doc := range docs {
 		var vault api.Vault
 		if err := doc.To(&vault); err != nil {
@@ -323,7 +323,7 @@ func (s *Server) getVaultsForOrg(c echo.Context) error {
 				vault.Timestamp = position.Timestamp
 			}
 		}
-		out := &api.OrgVault{
+		out := &api.TeamVault{
 			ID:        vault.ID,
 			Index:     vault.Index,
 			Timestamp: vault.Timestamp,
@@ -335,13 +335,13 @@ func (s *Server) getVaultsForOrg(c echo.Context) error {
 		vaults = append(vaults, out)
 	}
 
-	out := &api.OrgVaultsResponse{
+	out := &api.TeamVaultsResponse{
 		Vaults: vaults,
 	}
 	return c.JSON(http.StatusOK, out)
 }
 
-func (s *Server) putOrgInvite(c echo.Context) error {
+func (s *Server) putTeamInvite(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -357,13 +357,13 @@ func (s *Server) putOrgInvite(c echo.Context) error {
 	}
 	aid := acct.KID
 
-	authOrg, err := s.auth(c, &authRequest{Header: "Authorization-Org", Param: "oid", Content: body, NonceCheck: nonceAlreadyChecked()})
+	authTeam, err := s.auth(c, &authRequest{Header: "Authorization-Team", Param: "oid", Content: body, NonceCheck: nonceAlreadyChecked()})
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	oid := authOrg.KID
+	oid := authTeam.KID
 
-	var req api.OrgInviteRequest
+	var req api.TeamInviteRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
@@ -372,24 +372,24 @@ func (s *Server) putOrgInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	org, err := s.findOrg(ctx, oid)
+	team, err := s.findTeam(ctx, oid)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
-	if org == nil {
-		return s.ErrBadRequest(c, errors.Errorf("org not found"))
+	if team == nil {
+		return s.ErrBadRequest(c, errors.Errorf("team not found"))
 	}
 
-	orgInvite := &api.OrgInvite{
-		Org:          oid,
-		Domain:       org.Domain,
+	teamInvite := &api.TeamInvite{
+		Team:         oid,
+		Domain:       team.Domain,
 		Invite:       invite,
 		InvitedBy:    aid,
 		EncryptedKey: req.EncryptedKey,
 	}
 
-	path := dstore.Path("orgs", oid, "invites", invite)
-	if err := s.fi.Create(ctx, path, dstore.From(orgInvite)); err != nil {
+	path := dstore.Path("teams", oid, "invites", invite)
+	if err := s.fi.Create(ctx, path, dstore.From(teamInvite)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:
 			return s.ErrConflict(c, errors.Errorf("already invited"))
@@ -397,7 +397,7 @@ func (s *Server) putOrgInvite(c echo.Context) error {
 	}
 
 	accountPath := dstore.Path("accounts", invite, "invites", oid)
-	if err := s.fi.Create(ctx, accountPath, dstore.From(orgInvite)); err != nil {
+	if err := s.fi.Create(ctx, accountPath, dstore.From(teamInvite)); err != nil {
 		switch err.(type) {
 		case dstore.ErrPathExists:
 			return s.ErrConflict(c, errors.Errorf("already invited"))

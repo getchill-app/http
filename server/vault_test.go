@@ -470,6 +470,6 @@ func TestVaultStatus(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, 1, len(statusResp.Vaults))
 	require.Equal(t, vault.ID(), statusResp.Vaults[0].ID)
-	require.Equal(t, int64(1234567890016), statusResp.Vaults[0].Timestamp)
+	require.Equal(t, int64(1234567890015), statusResp.Vaults[0].Timestamp)
 	require.Equal(t, int64(1), statusResp.Vaults[0].Index)
 }

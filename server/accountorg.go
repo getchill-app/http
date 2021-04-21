@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (s *Server) getAccountOrgInvites(c echo.Context) error {
+func (s *Server) getAccountTeamInvites(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -24,7 +24,7 @@ func (s *Server) getAccountOrgInvites(c echo.Context) error {
 	}
 	defer iter.Release()
 
-	invites := []*api.OrgInvite{}
+	invites := []*api.TeamInvite{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -33,13 +33,13 @@ func (s *Server) getAccountOrgInvites(c echo.Context) error {
 		if doc == nil {
 			break
 		}
-		var invite api.OrgInvite
+		var invite api.TeamInvite
 		if err := doc.To(&invite); err != nil {
 			return s.ErrResponse(c, err)
 		}
 		invites = append(invites, &invite)
 	}
 
-	out := api.OrgInvitesResponse{Invites: invites}
+	out := api.TeamInvitesResponse{Invites: invites}
 	return c.JSON(http.StatusOK, out)
 }

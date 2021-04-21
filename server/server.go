@@ -125,19 +125,19 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.POST("/account/username", s.postAccountUsername)
 
 	e.GET("/account/:aid/vaults", s.getAccountVaults)
-	e.GET("/account/:aid/orgs", s.getOrgsForAccount)
-	e.GET("/account/:aid/invites", s.getAccountOrgInvites)
+	e.GET("/account/:aid/teams", s.getTeamsForAccount)
+	e.GET("/account/:aid/invites", s.getAccountTeamInvites)
 
 	e.POST("/account/:aid/auths", s.postAccountAuth)
 	e.GET("/account/:aid/auths", s.getAccountAuths)
 	e.DELETE("/account/:aid/auth/:id", s.deleteAuth)
 
-	// Org
-	e.PUT("/org/:oid", s.putOrg)
-	e.GET("/org/:oid", s.getOrg)
-	e.PUT("/org/:oid/vault", s.putOrgVault)
-	e.GET("/org/:oid/vaults", s.getVaultsForOrg)
-	e.PUT("/org/:oid/invite", s.putOrgInvite)
+	// Team
+	e.PUT("/team/:oid", s.putTeam)
+	e.GET("/team/:oid", s.getTeam)
+	e.PUT("/team/:oid/vault", s.putTeamVault)
+	e.GET("/team/:oid/vaults", s.getVaultsForTeam)
+	e.PUT("/team/:oid/invite", s.putTeamInvite)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)

@@ -32,7 +32,7 @@ func main() {
 	}
 
 	fmt.Printf("Looking up key for %s...\n", *email)
-	lookup, err := cl.UserLookup(context.TODO(), *email, accountKey.AsEdX25519())
+	lookup, err := cl.UserLookup(context.TODO(), "email", *email, accountKey.AsEdX25519())
 	if err != nil {
 		log.Fatal(err)
 	}

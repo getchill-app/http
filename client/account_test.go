@@ -39,18 +39,23 @@ func TestAccount(t *testing.T) {
 	require.Equal(t, "alice@keys.pub", resp.Email)
 	require.Equal(t, "alice", resp.Username)
 
-	lookup, err := client.UserLookup(ctx, "alice@keys.pub", alice)
+	lookup, err := client.UserLookup(ctx, "email", "alice@keys.pub", alice)
 	require.NoError(t, err)
 	require.Equal(t, lookup.KID, alice.ID())
 	require.Equal(t, lookup.Username, "alice")
 
-	lookup, err = client.UserLookup(ctx, "unknown+test@keys.pub", alice)
+	lookup, err = client.UserLookup(ctx, "email", "unknown+test@keys.pub", alice)
 	require.NoError(t, err)
 	require.Nil(t, lookup)
 
-	lookup, err = client.UserLookup(ctx, "", alice)
+	lookup, err = client.UserLookup(ctx, "email", "", alice)
 	require.NoError(t, err)
 	require.Nil(t, lookup)
+
+	lookup, err = client.UserLookup(ctx, "kid", alice.ID().String(), alice)
+	require.NoError(t, err)
+	require.Equal(t, lookup.KID, alice.ID())
+	require.Equal(t, lookup.Username, "alice")
 
 	mk := keys.Rand32()
 	pw, err := auth.NewPassword("testpassword", mk)

@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/getchill-app/http/api"
+	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/http"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
@@ -16,10 +17,28 @@ func (s *Server) getUserLookup(c echo.Context) error {
 		return s.ErrForbidden(c, err)
 	}
 	email := c.QueryParam("email")
-	acct, err := s.findAccountByEmail(ctx, email)
-	if err != nil {
-		return s.ErrResponse(c, err)
+	kid := c.QueryParam("kid")
+
+	var acct *api.Account
+	if email != "" {
+		a, err := s.findAccountByEmail(ctx, email)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		acct = a
 	}
+	if kid != "" {
+		k, err := keys.ParseID(kid)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		a, err := s.findAccount(ctx, k)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		acct = a
+	}
+
 	if acct == nil {
 		return s.ErrNotFound(c, errors.Errorf("account not found"))
 	}

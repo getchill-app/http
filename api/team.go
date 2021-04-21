@@ -10,31 +10,31 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Org struct {
+type Team struct {
 	ID         keys.ID   `json:"id"`
 	CreatedBy  keys.ID   `json:"createdBy"`
 	Domain     string    `json:"domain,omitempty"`
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
 }
 
-// OrgCreateRequest ...
-type OrgCreateRequest struct {
+// TeamCreateRequest ...
+type TeamCreateRequest struct {
 	Domain string `json:"domain"`
 }
 
-// OrgsResponse ...
-type OrgsResponse struct {
-	Orgs []*Org `json:"orgs"`
+// TeamsResponse ...
+type TeamsResponse struct {
+	Teams []*Team `json:"teams"`
 }
 
-// OrgVaultCreateRequest ...
-type OrgVaultCreateRequest struct {
+// TeamVaultCreateRequest ...
+type TeamVaultCreateRequest struct {
 	KID         string `json:"kid"`
 	EncyptedKey []byte `json:"ek"`
 }
 
-// OrgVault ...
-type OrgVault struct {
+// TeamVault ...
+type TeamVault struct {
 	ID           keys.ID `json:"id" msgpack:"id"`
 	Index        int64   `json:"idx" msgpack:"idx"`
 	Timestamp    int64   `json:"ts" msgpack:"ts"`
@@ -42,45 +42,45 @@ type OrgVault struct {
 	EncryptedKey []byte  `json:"ek,omitempty" msgpack:"ek,omitempty"`
 }
 
-// OrgsVaultsResponse ...
-type OrgVaultsResponse struct {
-	Vaults []*OrgVault `json:"vaults"`
+// TeamsVaultsResponse ...
+type TeamVaultsResponse struct {
+	Vaults []*TeamVault `json:"vaults"`
 }
 
-type OrgStatement struct {
+type TeamStatement struct {
 	KID       keys.ID `json:"kid"`
 	Domain    string  `json:"domain"`
 	Timestamp int64   `json:"ts"`
 }
 
-// OrgInviteRequest ...
-type OrgInviteRequest struct {
+// TeamInviteRequest ...
+type TeamInviteRequest struct {
 	Invite       string `json:"invite"`
 	EncryptedKey []byte `json:"ek"`
 }
 
-// OrgInvite ...
-type OrgInvite struct {
-	Org       keys.ID `json:"oid"`
+// TeamInvite ...
+type TeamInvite struct {
+	Team      keys.ID `json:"oid"`
 	Domain    string  `json:"domain"`
 	Invite    keys.ID `json:"invite"`
 	InvitedBy keys.ID `json:"invitedBy"`
-	// EncryptedKey is encrypted org key for the invite
+	// EncryptedKey is encrypted team key for the invite
 	EncryptedKey []byte `json:"ek"`
 }
 
-func (i OrgInvite) DecryptKey(key *keys.EdX25519Key) (*keys.EdX25519Key, error) {
+func (i TeamInvite) DecryptKey(key *keys.EdX25519Key) (*keys.EdX25519Key, error) {
 	return DecryptKey(i.EncryptedKey, key)
 }
 
-// OrgInvitesResponse ...
-type OrgInvitesResponse struct {
-	Invites []*OrgInvite `json:"invites"`
+// TeamInvitesResponse ...
+type TeamInvitesResponse struct {
+	Invites []*TeamInvite `json:"invites"`
 }
 
-func OrgSign(org *keys.EdX25519Key, domain string, ts time.Time) (string, error) {
-	st := &OrgStatement{
-		KID:       org.ID(),
+func TeamSign(team *keys.EdX25519Key, domain string, ts time.Time) (string, error) {
+	st := &TeamStatement{
+		KID:       team.ID(),
 		Domain:    domain,
 		Timestamp: tsutil.Millis(ts),
 	}
@@ -88,10 +88,10 @@ func OrgSign(org *keys.EdX25519Key, domain string, ts time.Time) (string, error)
 	if err != nil {
 		return "", err
 	}
-	return saltpack.SignArmored(b, org)
+	return saltpack.SignArmored(b, team)
 }
 
-func (o Org) Verify(s string) error {
+func (o Team) Verify(s string) error {
 	b, pk, err := saltpack.VerifyArmored(s)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (o Org) Verify(s string) error {
 	if pk != o.ID {
 		return errors.Errorf("invalid kid")
 	}
-	var st OrgStatement
+	var st TeamStatement
 	if err := json.Unmarshal(b, &st); err != nil {
 		return err
 	}

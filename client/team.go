@@ -14,13 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Client) OrgCreate(ctx context.Context, org *keys.EdX25519Key, account *keys.EdX25519Key) error {
-	return c.OrgCreateDomain(ctx, org, account, "")
+func (c *Client) TeamCreate(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key) error {
+	return c.TeamCreateDomain(ctx, team, account, "")
 }
 
-func (c *Client) OrgCreateDomain(ctx context.Context, org *keys.EdX25519Key, account *keys.EdX25519Key, domain string) error {
-	path := dstore.Path("org", org.ID())
-	create := &api.OrgCreateRequest{Domain: domain}
+func (c *Client) TeamCreateDomain(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key, domain string) error {
+	path := dstore.Path("team", team.ID())
+	create := &api.TeamCreateRequest{Domain: domain}
 	body, err := json.Marshal(create)
 	if err != nil {
 		return err
@@ -31,30 +31,30 @@ func (c *Client) OrgCreateDomain(ctx context.Context, org *keys.EdX25519Key, acc
 	return nil
 }
 
-func (c *Client) Org(ctx context.Context, org *keys.EdX25519Key) (*api.Org, error) {
-	path := dstore.Path("org", org.ID())
-	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: org})
+func (c *Client) Team(ctx context.Context, team *keys.EdX25519Key) (*api.Team, error) {
+	path := dstore.Path("team", team.ID())
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: team})
 	if err != nil {
 		return nil, err
 	}
-	var out api.Org
+	var out api.Team
 	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-func (c *Client) OrgSign(org *keys.EdX25519Key, domain string, ts time.Time) (string, error) {
-	return api.OrgSign(org, domain, ts)
+func (c *Client) TeamSign(team *keys.EdX25519Key, domain string, ts time.Time) (string, error) {
+	return api.TeamSign(team, domain, ts)
 }
 
-func (c *Client) OrgCreateVault(ctx context.Context, org keys.ID, account *keys.EdX25519Key, vault *keys.EdX25519Key) (*api.Vault, error) {
-	ek, err := api.EncryptKey(vault, org)
+func (c *Client) TeamCreateVault(ctx context.Context, team keys.ID, account *keys.EdX25519Key, vault *keys.EdX25519Key) (*api.Vault, error) {
+	ek, err := api.EncryptKey(vault, team)
 	if err != nil {
 		return nil, err
 	}
-	path := dstore.Path("org", org, "vault")
-	create := &api.OrgVaultCreateRequest{KID: vault.ID().String(), EncyptedKey: ek}
+	path := dstore.Path("team", team, "vault")
+	create := &api.TeamVaultCreateRequest{KID: vault.ID().String(), EncyptedKey: ek}
 	body, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
@@ -71,44 +71,44 @@ func (c *Client) OrgCreateVault(ctx context.Context, org keys.ID, account *keys.
 	return &out, nil
 }
 
-type OrgVaultsOpts struct {
+type TeamVaultsOpts struct {
 	EncryptedKeys bool
 }
 
-func (c *Client) OrgVaults(ctx context.Context, org *keys.EdX25519Key, opts *OrgVaultsOpts) (*api.OrgVaultsResponse, error) {
+func (c *Client) TeamVaults(ctx context.Context, team *keys.EdX25519Key, opts *TeamVaultsOpts) (*api.TeamVaultsResponse, error) {
 	if opts == nil {
-		opts = &OrgVaultsOpts{}
+		opts = &TeamVaultsOpts{}
 	}
 
-	path := dstore.Path("org", org.ID(), "vaults")
+	path := dstore.Path("team", team.ID(), "vaults")
 	params := url.Values{}
 	if opts.EncryptedKeys {
 		params.Set("ek", "1")
 	}
 
-	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Params: params, Key: org})
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Params: params, Key: team})
 	if err != nil {
 		return nil, err
 	}
-	var out api.OrgVaultsResponse
+	var out api.TeamVaultsResponse
 	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-func (c *Client) OrgInvite(ctx context.Context, org *keys.EdX25519Key, invite keys.ID, invitedBy *keys.EdX25519Key) error {
-	path := dstore.Path("org", org.ID(), "invite")
+func (c *Client) TeamInvite(ctx context.Context, team *keys.EdX25519Key, invite keys.ID, invitedBy *keys.EdX25519Key) error {
+	path := dstore.Path("team", team.ID(), "invite")
 
 	auths := []http.AuthHeader{
 		{Header: "Authorization", Key: invitedBy},
-		{Header: "Authorization-Org", Key: org},
+		{Header: "Authorization-Team", Key: team},
 	}
-	ek, err := api.EncryptKey(org, invite)
+	ek, err := api.EncryptKey(team, invite)
 	if err != nil {
 		return err
 	}
-	req := &api.OrgInviteRequest{
+	req := &api.TeamInviteRequest{
 		Invite:       invite.String(),
 		EncryptedKey: ek,
 	}
@@ -123,7 +123,7 @@ func (c *Client) OrgInvite(ctx context.Context, org *keys.EdX25519Key, invite ke
 	return nil
 }
 
-func (c *Client) OrgAccountInvites(ctx context.Context, account *keys.EdX25519Key) ([]*api.OrgInvite, error) {
+func (c *Client) TeamAccountInvites(ctx context.Context, account *keys.EdX25519Key) ([]*api.TeamInvite, error) {
 	path := dstore.Path("account", account.ID(), "invites")
 	resp, err := c.Request(ctx, client.GET(path, account))
 	if err != nil {
@@ -132,20 +132,20 @@ func (c *Client) OrgAccountInvites(ctx context.Context, account *keys.EdX25519Ke
 	if resp == nil {
 		return nil, errors.Errorf("resource not found")
 	}
-	var out api.OrgInvitesResponse
+	var out api.TeamInvitesResponse
 	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err
 	}
 	return out.Invites, nil
 }
 
-func (c *Client) OrgAccountInvite(ctx context.Context, account *keys.EdX25519Key, org keys.ID) (*api.OrgInvite, error) {
-	invites, err := c.OrgAccountInvites(ctx, account)
+func (c *Client) TeamAccountInvite(ctx context.Context, account *keys.EdX25519Key, team keys.ID) (*api.TeamInvite, error) {
+	invites, err := c.TeamAccountInvites(ctx, account)
 	if err != nil {
 		return nil, err
 	}
 	for _, invite := range invites {
-		if invite.Org == org {
+		if invite.Team == team {
 			return invite, nil
 		}
 	}

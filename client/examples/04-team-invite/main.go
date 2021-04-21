@@ -13,7 +13,7 @@ import (
 
 func main() {
 	account := flag.String("account", os.Getenv("ACCOUNT_KEY"), "Account key")
-	org := flag.String("org", os.Getenv("ORG_KEY"), "Org key")
+	team := flag.String("team", os.Getenv("TEAM_KEY"), "Team key")
 	email := flag.String("email", "", "Email")
 	flag.Parse()
 
@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	orgKey, err := api.DecodeKey(*org, "")
+	teamKey, err := api.DecodeKey(*team, "")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func main() {
 	fmt.Printf("Found key %s\n", lookup.KID)
 
 	fmt.Printf("Completing invite...")
-	if err := cl.OrgInvite(context.TODO(), orgKey.AsEdX25519(), lookup.KID, accountKey.AsEdX25519()); err != nil {
+	if err := cl.TeamInvite(context.TODO(), teamKey.AsEdX25519(), lookup.KID, accountKey.AsEdX25519()); err != nil {
 		log.Fatal(err)
 	}
 

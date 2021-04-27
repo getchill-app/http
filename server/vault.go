@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/getchill-app/http/api"
+	wsapi "github.com/getchill-app/ws/api"
 	"github.com/keys-pub/keys"
-	wsapi "github.com/keys-pub/keys-ext/ws/api"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/labstack/echo/v4"
@@ -44,10 +44,7 @@ func (s *Server) putVault(c echo.Context) error {
 		return s.ErrBadRequest(c, errors.Errorf("vault already exists"))
 	}
 
-	token, err := s.GenerateToken()
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
+	token := s.GenerateToken()
 
 	// Create vault
 	create := &api.Vault{
@@ -252,7 +249,7 @@ func (s *Server) postVault(c echo.Context) error {
 			return s.ErrResponse(c, err)
 		}
 		vt := &api.VaultToken{KID: vid, Token: vault.Token}
-		if err := s.notifyEvent(ctx, vt, idx); err != nil {
+		if err := s.notifyVault(ctx, vt, idx); err != nil {
 			return err
 		}
 	}
@@ -388,16 +385,20 @@ func (s *Server) postVaultsStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, out)
 }
 
-func (s *Server) notifyEvent(ctx context.Context, vt *api.VaultToken, idx int64) error {
-	if s.internalKey == nil {
-		return errors.Errorf("no secret key set")
-	}
+func (s *Server) notifyVault(ctx context.Context, vt *api.VaultToken, idx int64) error {
 	event := &wsapi.Event{
-		KID:   vt.KID,
-		Index: idx,
+		Type:  "vault",
 		Token: vt.Token,
+		Vault: &wsapi.Vault{
+			KID:   vt.KID,
+			Index: idx,
+		},
 	}
-	b, err := wsapi.Encrypt(event, s.internalKey)
+	return s.notifyEvent(ctx, event)
+}
+
+func (s *Server) notifyEvent(ctx context.Context, event *wsapi.Event) error {
+	b, err := msgpack.Marshal(event)
 	if err != nil {
 		return err
 	}

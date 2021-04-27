@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/dstore/events"
-	"github.com/keys-pub/keys/encoding"
 	"github.com/keys-pub/keys/http"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/labstack/echo/v4"
@@ -31,12 +29,6 @@ type Server struct {
 	// URL (base) of form http(s)://host:port with no trailing slash to help
 	// authorization checks in testing where the host is ambiguous.
 	URL string
-
-	// internalKey for encrypting between internal services.
-	internalKey *[32]byte
-
-	// tokenKey for JWT vault tokens
-	tokenKey []byte
 
 	emailer Emailer
 }
@@ -63,35 +55,9 @@ type Emailer interface {
 	SendVerificationEmail(email string, code string) error
 }
 
-// SetTokenKey for setting token key.
-func (s *Server) SetTokenKey(tokenKey string) error {
-	if tokenKey == "" {
-		return errors.Errorf("empty token key")
-	}
-	k, err := encoding.Decode(tokenKey, encoding.Hex)
-	if err != nil {
-		return err
-	}
-	s.tokenKey = k
-	return nil
-}
-
 // SetEmailer sets emailer.
 func (s *Server) SetEmailer(emailer Emailer) {
 	s.emailer = emailer
-}
-
-// SetInternalKey for encrypting between internal services.
-func (s *Server) SetInternalKey(internalKey string) error {
-	if internalKey == "" {
-		return errors.Errorf("empty internal key")
-	}
-	sk, err := encoding.Decode(internalKey, encoding.Hex)
-	if err != nil {
-		return err
-	}
-	s.internalKey = keys.Bytes32(sk)
-	return nil
 }
 
 // NewHandler returns http.Handler for Server.
@@ -120,13 +86,11 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	// Accounts
 	e.PUT("/account/register", s.putAccountRegister)
 	e.PUT("/account/:aid", s.putAccount)
-	e.PUT("/account/register/invite", s.putAccountRegisterInvite)
+	e.PUT("/account/invite", s.putAccountInvite)
 	e.GET("/account", s.getAccount)
 	e.POST("/account/username", s.postAccountUsername)
 
 	e.GET("/account/:aid/vaults", s.getAccountVaults)
-	e.GET("/account/:aid/teams", s.getTeamsForAccount)
-	e.GET("/account/:aid/invites", s.getAccountTeamInvites)
 
 	e.POST("/account/:aid/auths", s.postAccountAuth)
 	e.GET("/account/:aid/auths", s.getAccountAuths)
@@ -136,11 +100,14 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.PUT("/team/:tid", s.putTeam)
 	e.GET("/team/:tid", s.getTeam)
 	e.PUT("/team/:tid/vault", s.putTeamVault)
-	e.GET("/team/:tid/vaults", s.getVaultsForTeam)
-	e.PUT("/team/:tid/invite", s.putTeamInvite)
+	e.GET("/team/:tid/vaults", s.getTeamVaults)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)
+
+	// Share
+	e.GET("/share/:kid", s.getShare)
+	e.PUT("/share/:kid", s.putShare)
 }
 
 // SetClock sets clock.

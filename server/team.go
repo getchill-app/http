@@ -40,11 +40,7 @@ func (s *Server) putTeam(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	token, err := s.GenerateToken()
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
+	token := s.GenerateToken()
 	team := &api.Team{
 		ID:        tid,
 		Domain:    req.Domain,
@@ -157,43 +153,6 @@ func (s *Server) verifyTeam(ctx context.Context, team *api.Team) error {
 	return nil
 }
 
-func (s *Server) getTeamsForAccount(c echo.Context) error {
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	ctx := c.Request().Context()
-
-	// Auth
-	acct, err := s.authAccount(c, "aid", nil)
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-	aid := acct.KID
-
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("accounts", aid, "teams"))
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	defer iter.Release()
-
-	teams := []*api.Team{}
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			return s.ErrResponse(c, err)
-		}
-		if doc == nil {
-			break
-		}
-		var team api.Team
-		if err := doc.To(&team); err != nil {
-			return s.ErrResponse(c, err)
-		}
-		teams = append(teams, &team)
-	}
-
-	out := api.TeamsResponse{Teams: teams}
-	return c.JSON(http.StatusOK, out)
-}
-
 type teamVault struct {
 	KID          keys.ID `json:"kid"`
 	EncryptedKey []byte  `json:"ek"`
@@ -287,7 +246,7 @@ func (s *Server) putTeamVault(c echo.Context) error {
 	return JSON(c, http.StatusOK, create)
 }
 
-func (s *Server) getVaultsForTeam(c echo.Context) error {
+func (s *Server) getTeamVaults(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -347,73 +306,5 @@ func (s *Server) getVaultsForTeam(c echo.Context) error {
 	out := &api.TeamVaultsResponse{
 		Vaults: vaults,
 	}
-	return c.JSON(http.StatusOK, out)
-}
-
-func (s *Server) putTeamInvite(c echo.Context) error {
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	ctx := c.Request().Context()
-
-	body, err := readBody(c, false, 64*1024)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	// Auth
-	acct, err := s.authAccount(c, "", body)
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-	aid := acct.KID
-
-	authTeam, err := s.auth(c, &authRequest{Header: "Authorization-Team", Param: "tid", Content: body, NonceCheck: nonceAlreadyChecked()})
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-	tid := authTeam.KID
-
-	var req api.TeamInviteRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-	invite, err := keys.ParseID(req.Invite)
-	if err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-
-	team, err := s.findTeam(ctx, tid)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	if team == nil {
-		return s.ErrBadRequest(c, errors.Errorf("team not found"))
-	}
-
-	teamInvite := &api.TeamInvite{
-		Team:         tid,
-		Domain:       team.Domain,
-		Invite:       invite,
-		InvitedBy:    aid,
-		EncryptedKey: req.EncryptedKey,
-	}
-
-	path := dstore.Path("teams", tid, "invites", invite)
-	if err := s.fi.Create(ctx, path, dstore.From(teamInvite)); err != nil {
-		switch err.(type) {
-		case dstore.ErrPathExists:
-			return s.ErrConflict(c, errors.Errorf("already invited"))
-		}
-	}
-
-	accountPath := dstore.Path("accounts", invite, "invites", tid)
-	if err := s.fi.Create(ctx, accountPath, dstore.From(teamInvite)); err != nil {
-		switch err.(type) {
-		case dstore.ErrPathExists:
-			return s.ErrConflict(c, errors.Errorf("already invited"))
-		}
-		return s.ErrResponse(c, err)
-	}
-
-	var out struct{}
 	return c.JSON(http.StatusOK, out)
 }

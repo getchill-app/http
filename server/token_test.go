@@ -14,10 +14,6 @@ func TestTokens(t *testing.T) {
 	serverEnv := newTestServerEnv(t, env)
 	server := serverEnv.Server
 
-	token, err := server.GenerateToken()
-	require.NoError(t, err)
-	require.Equal(t, 84, len(token))
-
-	err = server.ValidateToken(token)
-	require.NoError(t, err)
+	token := server.GenerateToken()
+	require.Equal(t, 22, len(token))
 }

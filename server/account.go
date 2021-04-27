@@ -30,6 +30,7 @@ func (s *Server) putAccount(c echo.Context) error {
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := auth.KID
 
 	// TODO: Random delay/throttle so can't time error paths?
 
@@ -67,11 +68,10 @@ func (s *Server) putAccount(c echo.Context) error {
 	}
 
 	// Create account
-	path := dstore.Path("accounts", auth.KID)
-
+	path := dstore.Path("accounts", aid)
 	acct := &api.Account{
 		Email: req.Email,
-		KID:   auth.KID,
+		KID:   aid,
 	}
 
 	if err := s.fi.Create(ctx, path, dstore.From(acct)); err != nil {

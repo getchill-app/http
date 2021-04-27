@@ -76,10 +76,6 @@ func newEnvWithFire(t *testing.T, fi server.Fire, clock tsutil.Clock) *env {
 func newTestServerEnv(t *testing.T, env *env) *testServerEnv {
 	rds := server.NewRedisTest(env.clock)
 	srv := server.New(env.fi, rds, env.client, env.clock, server.NewLogger(env.logLevel))
-	err := srv.SetInternalKey("6a169a699f7683c04d127504a12ace3b326e8b56a61a9b315cf6b42e20d6a44a")
-	require.NoError(t, err)
-	err = srv.SetTokenKey("f41deca7f9ef4f82e53cd7351a90bc370e2bf15ed74d147226439cfde740ac18")
-	require.NoError(t, err)
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)
 	handler := server.NewHandler(srv)

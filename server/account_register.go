@@ -121,7 +121,7 @@ func (s *Server) sendEmailVerification(c echo.Context, acct *api.AccountUnverifi
 	return nil
 }
 
-func (s *Server) putAccountRegisterInvite(c echo.Context) error {
+func (s *Server) putAccountInvite(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 

@@ -65,7 +65,8 @@ func newEnvWithOptions(t *testing.T, opts *envOptions) (*env, func()) {
 	serverClient := http.NewClient()
 
 	serverLogger := server.NewLogger(opts.logLevel)
-	srv := server.New(opts.fi, rds, serverClient, opts.clock, serverLogger)
+	config := api.Config{RelayURL: "test.getchill.app", RelayAuth: "testRelayAuthToken"}
+	srv := server.New(opts.fi, rds, config, serverClient, opts.clock, serverLogger)
 	srv.SetClock(opts.clock)
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)

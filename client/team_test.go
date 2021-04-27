@@ -95,22 +95,16 @@ func TestTeamDomain(t *testing.T) {
 	bobClient := newTestClient(t, env)
 	bob := keys.NewEdX25519KeyFromSeed(testSeed(0x02))
 
-	// Alice register invite bob
-	err = aliceClient.AccountRegisterInvite(ctx, alice, "bob@keys.pub")
+	// Alice invite bob
+	err = aliceClient.AccountInvite(ctx, alice, "bob@keys.pub")
 	require.NoError(t, err)
 
 	testAccount(t, bobClient, emailer, bob, "bob@keys.pub", "bob")
 
-	// Alice invite bob to team
-	err = aliceClient.TeamInvite(ctx, team, bob.ID(), alice)
+	phrase, err := aliceClient.TeamInvite(ctx, team, alice)
 	require.NoError(t, err)
 
-	// Get invite
-	invites, err := bobClient.TeamAccountInvites(ctx, bob)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(invites))
-	require.Equal(t, "test.domain", invites[0].Domain)
-	teamOut, err := api.DecryptKey(invites[0].EncryptedKey, bob)
+	teamOut, err := bobClient.TeamInviteOpen(ctx, phrase, bob)
 	require.NoError(t, err)
 	require.Equal(t, teamOut, team)
 

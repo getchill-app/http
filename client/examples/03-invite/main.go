@@ -21,6 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	teamKey, err := api.DecodeKey(*team, "")
 	if err != nil {
 		log.Fatal(err)
@@ -31,20 +32,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Looking up key for %s...\n", *email)
-	lookup, err := cl.UserLookup(context.TODO(), "email", *email, accountKey.AsEdX25519())
+	if err := cl.AccountInvite(context.TODO(), accountKey.AsEdX25519(), *email); err != nil {
+		log.Fatal(err)
+	}
+
+	phrase, err := cl.TeamInvite(context.TODO(), teamKey.AsEdX25519(), accountKey.AsEdX25519())
 	if err != nil {
 		log.Fatal(err)
 	}
-	if lookup == nil {
-		log.Fatalf("email not found")
-	}
-	fmt.Printf("Found key %s\n", lookup.KID)
 
-	fmt.Printf("Completing invite...")
-	if err := cl.TeamInvite(context.TODO(), teamKey.AsEdX25519(), lookup.KID, accountKey.AsEdX25519()); err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("Invite complete.\n")
+	fmt.Printf("Invited with code:\n%s.\n", phrase)
 }

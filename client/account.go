@@ -21,8 +21,8 @@ func (c *Client) AccountRegister(ctx context.Context, email string) error {
 	return nil
 }
 
-func (c *Client) AccountRegisterInvite(ctx context.Context, account *keys.EdX25519Key, email string) error {
-	path := "/account/register/invite"
+func (c *Client) AccountInvite(ctx context.Context, account *keys.EdX25519Key, email string) error {
+	path := "/account/invite"
 	body, _ := json.Marshal(&api.AccountRegisterInviteRequest{Email: email})
 	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
 		return err

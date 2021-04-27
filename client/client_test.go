@@ -67,10 +67,6 @@ func newEnvWithOptions(t *testing.T, opts *envOptions) (*env, func()) {
 	serverLogger := server.NewLogger(opts.logLevel)
 	srv := server.New(opts.fi, rds, serverClient, opts.clock, serverLogger)
 	srv.SetClock(opts.clock)
-	err := srv.SetInternalKey("6a169a699f7683c04d127504a12ace3b326e8b56a61a9b315cf6b42e20d6a44a")
-	require.NoError(t, err)
-	err = srv.SetTokenKey("f41deca7f9ef4f82e53cd7351a90bc370e2bf15ed74d147226439cfde740ac18")
-	require.NoError(t, err)
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)
 

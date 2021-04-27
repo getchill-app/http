@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/keys-pub/keys"
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 func secretBoxMarshal(i interface{}, secretKey *[32]byte) ([]byte, error) {

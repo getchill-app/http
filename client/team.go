@@ -9,9 +9,10 @@ import (
 	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
-	"github.com/keys-pub/keys/http"
+	"github.com/keys-pub/keys/encoding"
 	"github.com/keys-pub/keys/http/client"
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 func (c *Client) TeamCreate(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key) error {
@@ -97,57 +98,46 @@ func (c *Client) TeamVaults(ctx context.Context, team *keys.EdX25519Key, opts *T
 	return &out, nil
 }
 
-func (c *Client) TeamInvite(ctx context.Context, team *keys.EdX25519Key, invite keys.ID, invitedBy *keys.EdX25519Key) error {
-	path := dstore.Path("team", team.ID(), "invite")
+func (c *Client) TeamInvite(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key) (string, error) {
+	otk := keys.GenerateEdX25519Key()
 
-	auths := []http.AuthHeader{
-		{Header: "Authorization", Key: invitedBy},
-		{Header: "Authorization-Team", Key: team},
+	invite := &api.TeamInvite{
+		Key: team.Seed()[:],
 	}
-	ek, err := api.EncryptKey(team, invite)
+	b, err := msgpack.Marshal(invite)
 	if err != nil {
-		return err
-	}
-	req := &api.TeamInviteRequest{
-		Invite:       invite.String(),
-		EncryptedKey: ek,
-	}
-	body, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Auths: auths}); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	if err := c.ShareSeal(ctx, otk, account, b[:], time.Minute*60); err != nil {
+		return "", err
+	}
+
+	phrase := encoding.MustEncode(otk.Seed()[:], encoding.BIP39)
+
+	return phrase, nil
 }
 
-func (c *Client) TeamAccountInvites(ctx context.Context, account *keys.EdX25519Key) ([]*api.TeamInvite, error) {
-	path := dstore.Path("account", account.ID(), "invites")
-	resp, err := c.Request(ctx, client.GET(path, account))
+func (c *Client) TeamInviteOpen(ctx context.Context, phrase string, account *keys.EdX25519Key) (*keys.EdX25519Key, error) {
+	seed, err := encoding.PhraseToBytes(phrase, true)
 	if err != nil {
-		return nil, err
+		return nil, errors.Errorf("invalid phrase")
 	}
-	if resp == nil {
-		return nil, errors.Errorf("resource not found")
-	}
-	var out api.TeamInvitesResponse
-	if err := json.Unmarshal(resp.Data, &out); err != nil {
-		return nil, err
-	}
-	return out.Invites, nil
-}
 
-func (c *Client) TeamAccountInvite(ctx context.Context, account *keys.EdX25519Key, team keys.ID) (*api.TeamInvite, error) {
-	invites, err := c.TeamAccountInvites(ctx, account)
+	otk := keys.NewEdX25519KeyFromSeed(seed)
+
+	b, err := c.ShareOpen(ctx, otk, account)
 	if err != nil {
 		return nil, err
 	}
-	for _, invite := range invites {
-		if invite.Team == team {
-			return invite, nil
-		}
+	var invite api.TeamInvite
+	if err := msgpack.Unmarshal(b, &invite); err != nil {
+		return nil, err
 	}
-	return nil, nil
+
+	if len(invite.Key) != 32 {
+		return nil, errors.Errorf("invalid invite key")
+	}
+
+	return keys.NewEdX25519KeyFromSeed(keys.Bytes32(invite.Key)), nil
 }

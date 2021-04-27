@@ -54,29 +54,8 @@ type TeamStatement struct {
 	Timestamp int64   `json:"ts"`
 }
 
-// TeamInviteRequest ...
-type TeamInviteRequest struct {
-	Invite       string `json:"invite"`
-	EncryptedKey []byte `json:"ek"`
-}
-
-// TeamInvite ...
 type TeamInvite struct {
-	Team      keys.ID `json:"team"`
-	Domain    string  `json:"domain"`
-	Invite    keys.ID `json:"invite"`
-	InvitedBy keys.ID `json:"invitedBy"`
-	// EncryptedKey is encrypted team key for the invite
-	EncryptedKey []byte `json:"ek"`
-}
-
-func (i TeamInvite) DecryptKey(key *keys.EdX25519Key) (*keys.EdX25519Key, error) {
-	return DecryptKey(i.EncryptedKey, key)
-}
-
-// TeamInvitesResponse ...
-type TeamInvitesResponse struct {
-	Invites []*TeamInvite `json:"invites"`
+	Key []byte `json:"key" msgpack:"key"`
 }
 
 func TeamSign(team *keys.EdX25519Key, domain string, ts time.Time) (string, error) {

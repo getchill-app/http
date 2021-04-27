@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"github.com/getchill-app/http/api"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/dstore/events"
 	"github.com/keys-pub/keys/http"
@@ -30,6 +31,8 @@ type Server struct {
 	// authorization checks in testing where the host is ambiguous.
 	URL string
 
+	config api.Config
+
 	emailer Emailer
 }
 
@@ -40,11 +43,12 @@ type Fire interface {
 }
 
 // New creates a Server.
-func New(fi Fire, rds Redis, client http.Client, clock tsutil.Clock, logger Logger) *Server {
+func New(fi Fire, rds Redis, config api.Config, client http.Client, clock tsutil.Clock, logger Logger) *Server {
 	return &Server{
 		fi:     fi,
 		rds:    rds,
 		client: client,
+		config: config,
 		clock:  clock,
 		logger: logger,
 	}
@@ -74,6 +78,8 @@ func newHandler(s *Server) *echo.Echo {
 
 // AddRoutes adds routes to an Echo instance.
 func (s *Server) AddRoutes(e *echo.Echo) {
+	e.GET("/config", s.getConfig)
+
 	// Vault
 	e.PUT("/vault/:vid", s.putVault)
 	e.GET("/vault/:vid", s.getVault)

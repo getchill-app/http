@@ -75,7 +75,8 @@ func newEnvWithFire(t *testing.T, fi server.Fire, clock tsutil.Clock) *env {
 
 func newTestServerEnv(t *testing.T, env *env) *testServerEnv {
 	rds := server.NewRedisTest(env.clock)
-	srv := server.New(env.fi, rds, env.client, env.clock, server.NewLogger(env.logLevel))
+	config := api.Config{RelayURL: "test.getchill.app", RelayAuth: "testRelayAuthToken"}
+	srv := server.New(env.fi, rds, config, env.client, env.clock, server.NewLogger(env.logLevel))
 	emailer := newTestEmailer()
 	srv.SetEmailer(emailer)
 	handler := server.NewHandler(srv)

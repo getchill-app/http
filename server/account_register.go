@@ -142,21 +142,28 @@ func (s *Server) putAccountInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	if err := checkmail.ValidateFormat(req.Email); err != nil {
-		return s.ErrBadRequest(c, errors.Errorf("invalid email"))
-	}
-
-	invite := api.AccountRegisterInvite{
-		Email:     req.Email,
-		InvitedBy: aid,
-	}
-
-	if err := s.fi.Set(ctx, dstore.Path("account-invites", req.Email), dstore.From(invite)); err != nil {
+	if err := s.accountInvite(ctx, req.Email, aid); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
 	var out struct{}
 	return JSON(c, http.StatusOK, out)
+}
+
+func (s *Server) accountInvite(ctx context.Context, email string, from keys.ID) error {
+	if err := checkmail.ValidateFormat(email); err != nil {
+		return newError(http.StatusBadRequest, errors.Errorf("invalid email"))
+	}
+
+	invite := api.AccountRegisterInvite{
+		Email: email,
+	}
+
+	if err := s.fi.Set(ctx, dstore.Path("account-invites", email), dstore.From(invite)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) registerEmailInvited(ctx context.Context, email string) (bool, error) {

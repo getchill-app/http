@@ -308,3 +308,89 @@ func (s *Server) getTeamVaults(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, out)
 }
+
+func (s *Server) putTeamInvite(c echo.Context) error {
+	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
+	ctx := c.Request().Context()
+
+	body, err := readBody(c, false, 512)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	// Auth
+	acct, err := s.authAccount(c, "", body)
+	if err != nil {
+		return s.ErrForbidden(c, err)
+	}
+
+	id, err := keys.ParseID(c.Param("id"))
+	if err != nil {
+		return s.ErrBadRequest(c, err)
+	}
+
+	var req api.TeamInviteRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return s.ErrBadRequest(c, err)
+	}
+
+	if err := s.accountInvite(ctx, req.Email, acct.KID); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	invite := api.TeamInvite{
+		EncryptedKey: req.EncryptedKey,
+		Email:        req.Email,
+		CreatedAt:    s.clock.Now(),
+	}
+
+	path := dstore.Path("invites", id)
+	if err := s.fi.Set(ctx, path, dstore.From(invite)); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	var resp struct{}
+	return JSON(c, http.StatusOK, resp)
+}
+
+func (s *Server) getTeamInvite(c echo.Context) error {
+	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
+	ctx := c.Request().Context()
+
+	// Auth
+	acct, err := s.authAccount(c, "", nil)
+	if err != nil {
+		return s.ErrForbidden(c, err)
+	}
+
+	id, err := keys.ParseID(c.Param("id"))
+	if err != nil {
+		return s.ErrBadRequest(c, err)
+	}
+
+	path := dstore.Path("invites", id)
+	doc, err := s.fi.Get(ctx, path)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+	if doc == nil {
+		return s.ErrNotFound(c, errors.Errorf("invite not found"))
+	}
+	if _, err := s.fi.Delete(ctx, path); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	var invite api.TeamInvite
+	if err := doc.To(&invite); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	if invite.Email != "" && invite.Email != acct.Email {
+		return s.ErrForbidden(c, errors.Errorf("invalid email"))
+	}
+
+	resp := &api.TeamInviteResponse{
+		EncryptedKey: invite.EncryptedKey,
+	}
+	return JSON(c, http.StatusOK, resp)
+}

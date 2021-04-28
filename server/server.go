@@ -107,6 +107,8 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.GET("/team/:tid", s.getTeam)
 	e.PUT("/team/:tid/vault", s.putTeamVault)
 	e.GET("/team/:tid/vaults", s.getTeamVaults)
+	e.PUT("/team/invite/:id", s.putTeamInvite)
+	e.GET("/team/invite/:id", s.getTeamInvite)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)

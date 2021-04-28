@@ -74,6 +74,5 @@ type AccountRegisterInviteRequest struct {
 }
 
 type AccountRegisterInvite struct {
-	Email     string  `json:"email"`
-	InvitedBy keys.ID `json:"invitedBy"`
+	Email string `json:"email"`
 }

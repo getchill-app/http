@@ -54,8 +54,19 @@ type TeamStatement struct {
 	Timestamp int64   `json:"ts"`
 }
 
+type TeamInviteRequest struct {
+	EncryptedKey []byte `json:"ek"`
+	Email        string `json:"email"`
+}
+
+type TeamInviteResponse struct {
+	EncryptedKey []byte `json:"ek"`
+}
+
 type TeamInvite struct {
-	Key []byte `json:"key" msgpack:"key"`
+	EncryptedKey []byte    `json:"ek"`
+	Email        string    `json:"email,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 func TeamSign(team *keys.EdX25519Key, domain string, ts time.Time) (string, error) {

@@ -12,7 +12,6 @@ import (
 	"github.com/keys-pub/keys/encoding"
 	"github.com/keys-pub/keys/http/client"
 	"github.com/pkg/errors"
-	"github.com/vmihailenco/msgpack/v4"
 )
 
 func (c *Client) TeamCreate(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key) error {
@@ -98,18 +97,17 @@ func (c *Client) TeamVaults(ctx context.Context, team *keys.EdX25519Key, opts *T
 	return &out, nil
 }
 
-func (c *Client) TeamInvite(ctx context.Context, team *keys.EdX25519Key, account *keys.EdX25519Key) (string, error) {
+func (c *Client) TeamInvite(ctx context.Context, team *keys.EdX25519Key, email string, account *keys.EdX25519Key) (string, error) {
 	otk := keys.GenerateEdX25519Key()
+	ek := keys.CryptoBoxSeal(team.Seed()[:], otk.X25519Key().PublicKey())
 
-	invite := &api.TeamInvite{
-		Key: team.Seed()[:],
+	path := dstore.Path("/team/invite", otk.ID())
+	req := &api.TeamInviteRequest{
+		EncryptedKey: ek,
+		Email:        email,
 	}
-	b, err := msgpack.Marshal(invite)
-	if err != nil {
-		return "", err
-	}
-
-	if err := c.ShareSeal(ctx, otk, account, b[:], time.Minute*60); err != nil {
+	body, _ := json.Marshal(req)
+	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
 		return "", err
 	}
 
@@ -126,18 +124,23 @@ func (c *Client) TeamInviteOpen(ctx context.Context, phrase string, account *key
 
 	otk := keys.NewEdX25519KeyFromSeed(seed)
 
-	b, err := c.ShareOpen(ctx, otk, account)
+	path := dstore.Path("/team/invite", otk.ID())
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: account})
 	if err != nil {
 		return nil, err
 	}
-	var invite api.TeamInvite
-	if err := msgpack.Unmarshal(b, &invite); err != nil {
+	var out api.TeamInviteResponse
+	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err
 	}
 
-	if len(invite.Key) != 32 {
-		return nil, errors.Errorf("invalid invite key")
+	decrypted, err := keys.CryptoBoxSealOpen(out.EncryptedKey, otk.X25519Key())
+	if err != nil {
+		return nil, err
+	}
+	if len(decrypted) != 32 {
+		return nil, errors.Errorf("invalid key")
 	}
 
-	return keys.NewEdX25519KeyFromSeed(keys.Bytes32(invite.Key)), nil
+	return keys.NewEdX25519KeyFromSeed(keys.Bytes32(decrypted)), nil
 }

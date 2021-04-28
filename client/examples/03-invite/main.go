@@ -32,11 +32,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := cl.AccountInvite(context.TODO(), accountKey.AsEdX25519(), *email); err != nil {
-		log.Fatal(err)
-	}
-
-	phrase, err := cl.TeamInvite(context.TODO(), teamKey.AsEdX25519(), accountKey.AsEdX25519())
+	phrase, err := cl.TeamInvite(context.TODO(), teamKey.AsEdX25519(), *email, accountKey.AsEdX25519())
 	if err != nil {
 		log.Fatal(err)
 	}

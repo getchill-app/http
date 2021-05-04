@@ -5,18 +5,19 @@ import (
 	"testing"
 
 	"github.com/getchill-app/http/client"
+	"github.com/getchill-app/http/client/testutil"
 	"github.com/getchill-app/http/server"
+	"github.com/getchill-app/keyring/auth"
 	"github.com/keys-pub/keys"
-	"github.com/keys-pub/vault/auth"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAccount(t *testing.T) {
-	env, closeFn := newEnv(t, server.NoLevel)
+	env, closeFn := testutil.NewEnv(t, server.NoLevel)
 	defer closeFn()
-	emailer := newTestEmailer()
-	env.srv.SetEmailer(emailer)
-	client := newTestClient(t, env)
+	emailer := testutil.NewTestEmailer()
+	env.SetEmailer(emailer)
+	client := testutil.NewTestClient(t, env)
 	ctx := context.TODO()
 	var err error
 
@@ -25,7 +26,7 @@ func TestAccount(t *testing.T) {
 	code := emailer.SentVerificationEmail("alice@keys.pub")
 	require.NotEmpty(t, code)
 
-	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
+	alice := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
 	err = client.AccountCreate(ctx, alice, "alice@keys.pub", code)
 	require.NoError(t, err)
 
@@ -72,7 +73,7 @@ func TestAccount(t *testing.T) {
 	require.EqualError(t, err, "invalid email (400)")
 }
 
-func testAccount(t *testing.T, cl *client.Client, emailer *testEmailer, key *keys.EdX25519Key, email string, username string) {
+func testAccount(t *testing.T, cl *client.Client, emailer *testutil.TestEmailer, key *keys.EdX25519Key, email string, username string) {
 	var err error
 	ctx := context.TODO()
 

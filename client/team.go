@@ -48,13 +48,13 @@ func (c *Client) TeamSign(team *keys.EdX25519Key, domain string, ts time.Time) (
 	return api.TeamSign(team, domain, ts)
 }
 
-func (c *Client) TeamCreateVault(ctx context.Context, team keys.ID, account *keys.EdX25519Key, vault *keys.EdX25519Key) (*api.Vault, error) {
-	ek, err := api.EncryptKey(vault, team)
+func (c *Client) TeamCreateChannel(ctx context.Context, team keys.ID, account *keys.EdX25519Key, channel *keys.EdX25519Key) (*api.Vault, error) {
+	ek, err := api.EncryptKey(channel, team)
 	if err != nil {
 		return nil, err
 	}
-	path := dstore.Path("team", team, "vault")
-	create := &api.TeamVaultCreateRequest{KID: vault.ID().String(), EncyptedKey: ek}
+	path := dstore.Path("team", team, "channel")
+	create := &api.TeamChannelCreateRequest{KID: channel.ID().String(), EncyptedKey: ek}
 	body, err := json.Marshal(create)
 	if err != nil {
 		return nil, err
@@ -75,12 +75,12 @@ type TeamVaultsOpts struct {
 	EncryptedKeys bool
 }
 
-func (c *Client) TeamVaults(ctx context.Context, team *keys.EdX25519Key, opts *TeamVaultsOpts) (*api.TeamVaultsResponse, error) {
+func (c *Client) TeamChannels(ctx context.Context, team *keys.EdX25519Key, opts *TeamVaultsOpts) (*api.TeamChannelsResponse, error) {
 	if opts == nil {
 		opts = &TeamVaultsOpts{}
 	}
 
-	path := dstore.Path("team", team.ID(), "vaults")
+	path := dstore.Path("team", team.ID(), "channels")
 	params := url.Values{}
 	if opts.EncryptedKeys {
 		params.Set("ek", "1")
@@ -90,7 +90,7 @@ func (c *Client) TeamVaults(ctx context.Context, team *keys.EdX25519Key, opts *T
 	if err != nil {
 		return nil, err
 	}
-	var out api.TeamVaultsResponse
+	var out api.TeamChannelsResponse
 	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err
 	}

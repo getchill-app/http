@@ -15,6 +15,9 @@ func (c *Client) Config(ctx context.Context, account *keys.EdX25519Key) (*api.Co
 	if err != nil {
 		return nil, err
 	}
+	if resp == nil {
+		return nil, nil
+	}
 	var out api.Config
 	if err := json.Unmarshal(resp.Data, &out); err != nil {
 		return nil, err

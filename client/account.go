@@ -6,10 +6,10 @@ import (
 	"net/url"
 
 	"github.com/getchill-app/http/api"
+	"github.com/getchill-app/keyring/auth"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/http/client"
-	"github.com/keys-pub/vault/auth"
 )
 
 func (c *Client) AccountRegister(ctx context.Context, email string) error {

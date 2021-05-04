@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/getchill-app/http/api"
 	"github.com/getchill-app/http/client"
+	"github.com/getchill-app/http/client/testutil"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/http"
@@ -15,16 +16,16 @@ import (
 )
 
 func TestTeamSetup(t *testing.T) {
-	env, closeFn := newEnv(t, server.NoLevel)
+	env, closeFn := testutil.NewEnv(t, server.NoLevel)
 	defer closeFn()
-	emailer := newTestEmailer()
-	env.srv.SetEmailer(emailer)
+	emailer := testutil.NewTestEmailer()
+	env.SetEmailer(emailer)
 	ctx := context.TODO()
 	var err error
 
-	aliceClient := newTestClient(t, env)
-	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	team := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
+	aliceClient := testutil.NewTestClient(t, env)
+	alice := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
+	team := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x30))
 
 	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub", "alice")
 
@@ -37,16 +38,16 @@ func TestTeamSetup(t *testing.T) {
 }
 
 func TestTeamCreate(t *testing.T) {
-	env, closeFn := newEnv(t, server.NoLevel)
+	env, closeFn := testutil.NewEnv(t, server.NoLevel)
 	defer closeFn()
-	emailer := newTestEmailer()
-	env.srv.SetEmailer(emailer)
+	emailer := testutil.NewTestEmailer()
+	env.SetEmailer(emailer)
 	ctx := context.TODO()
 	var err error
 
-	aliceClient := newTestClient(t, env)
-	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	team := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
+	aliceClient := testutil.NewTestClient(t, env)
+	alice := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
+	team := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x30))
 
 	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub", "alice")
 
@@ -59,27 +60,27 @@ func TestTeamCreate(t *testing.T) {
 
 	// Create channel
 	channel := keys.GenerateEdX25519Key()
-	created, err := aliceClient.TeamCreateVault(ctx, team.ID(), alice, channel)
+	created, err := aliceClient.TeamCreateChannel(ctx, team.ID(), alice, channel)
 	require.NoError(t, err)
 	require.NotEmpty(t, created.Token)
 
-	respVaults, err := aliceClient.TeamVaults(ctx, team, nil)
+	resp, err := aliceClient.TeamChannels(ctx, team, nil)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(respVaults.Vaults))
-	require.Equal(t, channel.ID(), respVaults.Vaults[0].ID)
+	require.Equal(t, 1, len(resp.Channels))
+	require.Equal(t, channel.ID(), resp.Channels[0].ID)
 
-	respVaults, err = aliceClient.TeamVaults(ctx, team, &client.TeamVaultsOpts{EncryptedKeys: true})
+	resp, err = aliceClient.TeamChannels(ctx, team, &client.TeamVaultsOpts{EncryptedKeys: true})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(respVaults.Vaults))
-	require.Equal(t, channel.ID(), respVaults.Vaults[0].ID)
+	require.Equal(t, 1, len(resp.Channels))
+	require.Equal(t, channel.ID(), resp.Channels[0].ID)
 
-	channelOut, err := api.DecryptKey(respVaults.Vaults[0].EncryptedKey, team)
+	channelOut, err := api.DecryptKey(resp.Channels[0].EncryptedKey, team)
 	require.NoError(t, err)
 	require.Equal(t, channelOut, channel)
 
 	// Bob
-	bobClient := newTestClient(t, env)
-	bob := keys.NewEdX25519KeyFromSeed(testSeed(0x02))
+	bobClient := testutil.NewTestClient(t, env)
+	bob := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
 
 	// Alice invite bob
 	phrase, err := aliceClient.TeamInvite(ctx, team, "bob@keys.pub", alice)
@@ -91,14 +92,14 @@ func TestTeamCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, teamOut, team)
 
-	respVaults, err = bobClient.TeamVaults(ctx, team, nil)
+	resp, err = bobClient.TeamChannels(ctx, team, nil)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(respVaults.Vaults))
-	require.Equal(t, channel.ID(), respVaults.Vaults[0].ID)
+	require.Equal(t, 1, len(resp.Channels))
+	require.Equal(t, channel.ID(), resp.Channels[0].ID)
 
 	// Charlie
-	charlieClient := newTestClient(t, env)
-	charlie := keys.NewEdX25519KeyFromSeed(testSeed(0x03))
+	charlieClient := testutil.NewTestClient(t, env)
+	charlie := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
 
 	err = aliceClient.AccountInvite(ctx, alice, "charlie@keys.pub")
 	require.NoError(t, err)
@@ -114,30 +115,30 @@ func TestTeamCreate(t *testing.T) {
 }
 
 func TestTeamDomain(t *testing.T) {
-	env, closeFn := newEnv(t, server.NoLevel)
+	env, closeFn := testutil.NewEnv(t, server.NoLevel)
 	defer closeFn()
-	emailer := newTestEmailer()
-	env.srv.SetEmailer(emailer)
+	emailer := testutil.NewTestEmailer()
+	env.SetEmailer(emailer)
 	ctx := context.TODO()
 	var err error
 
-	aliceClient := newTestClient(t, env)
-	alice := keys.NewEdX25519KeyFromSeed(testSeed(0x01))
-	team := keys.NewEdX25519KeyFromSeed(testSeed(0x30))
+	aliceClient := testutil.NewTestClient(t, env)
+	alice := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x01))
+	team := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x30))
 
 	testAccount(t, aliceClient, emailer, alice, "alice@keys.pub", "alice")
 
 	st, err := aliceClient.TeamSign(team, "test.domain", time.Now())
 	require.NoError(t, err)
 
-	env.serverClient.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
+	env.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
 		return http.ProxyResponse{Err: http.Err{Code: 404}}
 	})
 
 	err = aliceClient.TeamCreateDomain(ctx, team, alice, "test.domain")
 	require.EqualError(t, err, "failed to verify domain: http error 404 (400)")
 
-	env.serverClient.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
+	env.SetProxy("https://test.domain/.well-known/getchill.txt", func(ctx context.Context, req *http.Request) http.ProxyResponse {
 		return http.ProxyResponse{Body: []byte(st)}
 	})
 

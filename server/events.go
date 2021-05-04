@@ -1,12 +1,15 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/getchill-app/http/api"
+	wsapi "github.com/getchill-app/ws/api"
 	"github.com/keys-pub/keys/dstore/events"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 func (s *Server) events(c echo.Context, path string, max int) (*api.EventsResponse, error) {
@@ -67,4 +70,15 @@ func (s *Server) events(c echo.Context, path string, max int) (*api.EventsRespon
 		Events: events,
 		Index:  to,
 	}, nil
+}
+
+func (s *Server) notifyEvent(ctx context.Context, event *wsapi.Event) error {
+	b, err := msgpack.Marshal(event)
+	if err != nil {
+		return err
+	}
+	if err := s.rds.Publish(ctx, wsapi.EventPubSub, b); err != nil {
+		return err
+	}
+	return nil
 }

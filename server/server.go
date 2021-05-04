@@ -80,15 +80,6 @@ func newHandler(s *Server) *echo.Echo {
 func (s *Server) AddRoutes(e *echo.Echo) {
 	e.GET("/config", s.getConfig)
 
-	// Vault
-	e.PUT("/vault/:vid", s.putVault)
-	e.GET("/vault/:vid", s.getVault)
-	e.POST("/vault/:vid/events", s.postVault)
-	e.GET("/vault/:vid/events", s.listVault)
-	e.DELETE("/vault/:vid", s.deleteVault)
-	e.HEAD("/vault/:vid", s.headVault)
-	e.POST("/vaults/status", s.postVaultsStatus)
-
 	// Accounts
 	e.PUT("/account/register", s.putAccountRegister)
 	e.PUT("/account/:aid", s.putAccount)
@@ -105,10 +96,19 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	// Team
 	e.PUT("/team/:tid", s.putTeam)
 	e.GET("/team/:tid", s.getTeam)
-	e.PUT("/team/:tid/vault", s.putTeamVault)
-	e.GET("/team/:tid/vaults", s.getTeamVaults)
+	e.PUT("/team/:tid/channel", s.putTeamChannel)
+	e.GET("/team/:tid/channels", s.getTeamChannels)
 	e.PUT("/team/invite/:id", s.putTeamInvite)
 	e.GET("/team/invite/:id", s.getTeamInvite)
+
+	// Channel/Messages
+	e.PUT("/channel/:cid", s.putChannel)
+	e.GET("/channel/:cid", s.getChannel)
+	e.POST("/messages/:cid", s.postMessage)
+	e.GET("/messages/:cid", s.listMessages)
+	e.DELETE("/channel/:cid", s.deleteChannel)
+	e.HEAD("/channel/:cid", s.headChannel)
+	e.POST("/channels", s.postChannels)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)
@@ -116,6 +116,15 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	// Share
 	e.GET("/share/:kid", s.getShare)
 	e.PUT("/share/:kid", s.putShare)
+
+	// Vault
+	e.PUT("/vault/:vid", s.putVault)
+	e.GET("/vault/:vid", s.getVault)
+	e.POST("/vault/:vid/events", s.postVault)
+	e.GET("/vault/:vid/events", s.listVault)
+	e.DELETE("/vault/:vid", s.deleteVault)
+	e.HEAD("/vault/:vid", s.headVault)
+	e.POST("/vaults/status", s.postVaultsStatus)
 }
 
 // SetClock sets clock.

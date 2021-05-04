@@ -396,14 +396,3 @@ func (s *Server) notifyVault(ctx context.Context, vt *api.VaultToken, idx int64)
 	}
 	return s.notifyEvent(ctx, event)
 }
-
-func (s *Server) notifyEvent(ctx context.Context, event *wsapi.Event) error {
-	b, err := msgpack.Marshal(event)
-	if err != nil {
-		return err
-	}
-	if err := s.rds.Publish(ctx, wsapi.EventPubSub, b); err != nil {
-		return err
-	}
-	return nil
-}

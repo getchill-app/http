@@ -153,20 +153,20 @@ func (s *Server) verifyTeam(ctx context.Context, team *api.Team) error {
 	return nil
 }
 
-type teamVault struct {
+type teamChannel struct {
 	KID          keys.ID `json:"kid"`
 	EncryptedKey []byte  `json:"ek"`
 }
 
-func (s *Server) vaultsForTeam(c echo.Context, kid keys.ID) ([]*teamVault, error) {
+func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*teamChannel, error) {
 	ctx := c.Request().Context()
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("teams", kid, "vaults"))
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("teams", kid, "channels"))
 	if err != nil {
 		return nil, err
 	}
 	defer iter.Release()
 
-	ovs := []*teamVault{}
+	ovs := []*teamChannel{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -175,7 +175,7 @@ func (s *Server) vaultsForTeam(c echo.Context, kid keys.ID) ([]*teamVault, error
 		if doc == nil {
 			break
 		}
-		var ov teamVault
+		var ov teamChannel
 		if err := doc.To(&ov); err != nil {
 			return nil, err
 		}
@@ -184,7 +184,7 @@ func (s *Server) vaultsForTeam(c echo.Context, kid keys.ID) ([]*teamVault, error
 	return ovs, nil
 }
 
-func (s *Server) putTeamVault(c echo.Context) error {
+func (s *Server) putTeamChannel(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -205,11 +205,11 @@ func (s *Server) putTeamVault(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	var req api.TeamVaultCreateRequest
+	var req api.TeamChannelCreateRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
-	vid, err := keys.ParseID(req.KID)
+	cid, err := keys.ParseID(req.KID)
 	if err != nil {
 		return s.ErrBadRequest(c, err)
 	}
@@ -222,31 +222,31 @@ func (s *Server) putTeamVault(c echo.Context) error {
 		return s.ErrBadRequest(c, errors.Errorf("invalid team"))
 	}
 
-	// Create vault
-	create := &api.Vault{
-		ID:        vid,
+	// Create
+	create := &Channel{
+		ID:        cid,
 		Token:     team.Token,
 		Team:      tid,
 		CreatedBy: aid,
 	}
-	path := dstore.Path("vaults", vid)
+	path := dstore.Path("channels", cid)
 	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
-	ov := &teamVault{
-		KID:          vid,
+	ov := &teamChannel{
+		KID:          cid,
 		EncryptedKey: req.EncyptedKey,
 	}
-	teamVaultPath := dstore.Path("teams", tid, "vaults", vid)
-	if err := s.fi.Create(ctx, teamVaultPath, dstore.From(ov)); err != nil {
+	teamPath := dstore.Path("teams", tid, "channels", cid)
+	if err := s.fi.Create(ctx, teamPath, dstore.From(ov)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
 	return JSON(c, http.StatusOK, create)
 }
 
-func (s *Server) getTeamVaults(c echo.Context) error {
+func (s *Server) getTeamChannels(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
@@ -257,15 +257,15 @@ func (s *Server) getTeamVaults(c echo.Context) error {
 
 	includeEncryptedKey := c.QueryParam("ek") == "1"
 
-	ovs, err := s.vaultsForTeam(c, auth.KID)
+	channels, err := s.channelsForTeam(c, auth.KID)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 	paths := []string{}
 	ekm := map[keys.ID][]byte{}
-	for _, ov := range ovs {
-		paths = append(paths, dstore.Path("vaults", ov.KID))
-		ekm[ov.KID] = ov.EncryptedKey
+	for _, channel := range channels {
+		paths = append(paths, dstore.Path("channels", channel.KID))
+		ekm[channel.KID] = channel.EncryptedKey
 	}
 
 	docs, err := s.fi.GetAll(ctx, paths)
@@ -277,34 +277,34 @@ func (s *Server) getTeamVaults(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 
-	vaults := make([]*api.TeamVault, 0, len(docs))
+	tcs := make([]*api.Channel, 0, len(docs))
 	for _, doc := range docs {
-		var vault api.Vault
-		if err := doc.To(&vault); err != nil {
+		var channel Channel
+		if err := doc.To(&channel); err != nil {
 			return s.ErrResponse(c, err)
 		}
-		vault.Timestamp = tsutil.Millis(doc.UpdatedAt)
+		channel.Timestamp = tsutil.Millis(doc.UpdatedAt)
 		position := positions[doc.Path]
 		if position != nil {
-			vault.Index = position.Index
+			channel.Index = position.Index
 			if position.Timestamp > 0 {
-				vault.Timestamp = position.Timestamp
+				channel.Timestamp = position.Timestamp
 			}
 		}
-		out := &api.TeamVault{
-			ID:        vault.ID,
-			Index:     vault.Index,
-			Timestamp: vault.Timestamp,
-			Token:     vault.Token,
+		out := &api.Channel{
+			ID:        channel.ID,
+			Index:     channel.Index,
+			Timestamp: channel.Timestamp,
+			Token:     channel.Token,
 		}
 		if includeEncryptedKey {
-			out.EncryptedKey = ekm[vault.ID]
+			out.EncryptedKey = ekm[channel.ID]
 		}
-		vaults = append(vaults, out)
+		tcs = append(tcs, out)
 	}
 
-	out := &api.TeamVaultsResponse{
-		Vaults: vaults,
+	out := &api.TeamChannelsResponse{
+		Channels: tcs,
 	}
 	return c.JSON(http.StatusOK, out)
 }

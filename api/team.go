@@ -28,24 +28,13 @@ type TeamsResponse struct {
 	Teams []*Team `json:"teams"`
 }
 
-// TeamVaultCreateRequest ...
-type TeamVaultCreateRequest struct {
+type TeamChannelCreateRequest struct {
 	KID         string `json:"kid"`
 	EncyptedKey []byte `json:"ek"`
 }
 
-// TeamVault ...
-type TeamVault struct {
-	ID           keys.ID `json:"id" msgpack:"id"`
-	Index        int64   `json:"idx" msgpack:"idx"`
-	Timestamp    int64   `json:"ts" msgpack:"ts"`
-	Token        string  `json:"token" msgpack:"token"`
-	EncryptedKey []byte  `json:"ek,omitempty" msgpack:"ek,omitempty"`
-}
-
-// TeamsVaultsResponse ...
-type TeamVaultsResponse struct {
-	Vaults []*TeamVault `json:"vaults"`
+type TeamChannelsResponse struct {
+	Channels []*Channel `json:"channels"`
 }
 
 type TeamStatement struct {

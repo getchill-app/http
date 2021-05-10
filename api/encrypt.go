@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/keys-pub/keys"
 	"github.com/pkg/errors"
+	"github.com/vmihailenco/msgpack/v4"
 )
 
 func EncryptKey(key *keys.EdX25519Key, to keys.ID) ([]byte, error) {
@@ -55,4 +56,24 @@ func DecryptMessage(b []byte, key *keys.EdX25519Key) ([]byte, *keys.X25519Public
 	}
 
 	return decrypted, pk, nil
+}
+
+func Encrypt(i interface{}, key *keys.EdX25519Key) ([]byte, error) {
+	b, err := msgpack.Marshal(i)
+	if err != nil {
+		return nil, err
+	}
+	encryptedKey := keys.CryptoBoxSeal(b, key.X25519Key().PublicKey())
+	return encryptedKey, nil
+}
+
+func Decrypt(b []byte, v interface{}, key *keys.EdX25519Key) error {
+	decrypted, err := keys.CryptoBoxSealOpen(b, key.X25519Key())
+	if err != nil {
+		return err
+	}
+	if err := msgpack.Unmarshal(decrypted, v); err != nil {
+		return err
+	}
+	return nil
 }

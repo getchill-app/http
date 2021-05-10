@@ -29,8 +29,8 @@ type TeamsResponse struct {
 }
 
 type TeamChannelCreateRequest struct {
-	KID         string `json:"kid"`
-	EncyptedKey []byte `json:"ek"`
+	EncryptedKey  []byte `json:"ek"`
+	EncryptedInfo []byte `json:"einfo"`
 }
 
 type TeamChannelsResponse struct {

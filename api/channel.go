@@ -12,8 +12,22 @@ type Channel struct {
 	Timestamp int64  `json:"ts,omitempty" msgpack:"ts,omitempty"`
 	Token     string `json:"token,omitempty" msgpack:"token,omitempty"`
 
-	// EncryptedKey for team channel
+	// EncryptedKey is encrypted key (using team key)
 	EncryptedKey []byte `json:"ek,omitempty" msgpack:"ek,omitempty"`
+	// EncryptedInfo is encrypted msgpack api.ChannelInfo
+	EncryptedInfo []byte `json:"einfo,omitempty" msgpack:"einfo,omitempty"`
+}
+
+func (c *Channel) Info(key *keys.EdX25519Key) *ChannelInfo {
+	var info ChannelInfo
+	if err := Decrypt(c.EncryptedInfo, &info, key); err != nil {
+		return nil
+	}
+	return &info
+}
+
+type ChannelCreateRequest struct {
+	EncryptedInfo []byte `json:"einfo"`
 }
 
 type MesssagesResponse struct {

@@ -14,10 +14,23 @@ import (
 )
 
 // ChannelCreate creates a channel and returns token.
-func (c *Client) ChannelCreate(ctx context.Context, channel *keys.EdX25519Key, account *keys.EdX25519Key) (string, error) {
+func (c *Client) ChannelCreate(ctx context.Context, channel *keys.EdX25519Key, info *api.ChannelInfo, account *keys.EdX25519Key) (string, error) {
 	logger.Debugf("Create channel %s", channel.ID())
 	path := dstore.Path("channel", channel.ID())
-	resp, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Key: account})
+
+	encryptedInfo, err := api.Encrypt(info, channel)
+	if err != nil {
+		return "", err
+	}
+	req := &api.ChannelCreateRequest{
+		EncryptedInfo: encryptedInfo,
+	}
+	body, err := json.Marshal(req)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account})
 	if err != nil {
 		return "", err
 	}

@@ -21,7 +21,7 @@ func (c *Client) AccountRegister(ctx context.Context, email string) error {
 	return nil
 }
 
-func (c *Client) AccountInvite(ctx context.Context, account *keys.EdX25519Key, email string) error {
+func (c *Client) AccountInvite(ctx context.Context, email string, account *keys.EdX25519Key) error {
 	path := "/account/invite"
 	body, _ := json.Marshal(&api.AccountRegisterInviteRequest{Email: email})
 	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
@@ -52,7 +52,7 @@ func (c *Client) Account(ctx context.Context, account *keys.EdX25519Key) (*api.A
 	return &out, nil
 }
 
-func (c *Client) AccountSetUsername(ctx context.Context, account *keys.EdX25519Key, username string) error {
+func (c *Client) AccountSetUsername(ctx context.Context, username string, account *keys.EdX25519Key) error {
 	path := "/account/username"
 	params := url.Values{}
 	params.Set("username", username)
@@ -63,7 +63,7 @@ func (c *Client) AccountSetUsername(ctx context.Context, account *keys.EdX25519K
 	return nil
 }
 
-func (c *Client) AccountAuthSave(ctx context.Context, account *keys.EdX25519Key, auth *auth.Auth) error {
+func (c *Client) AccountAuthSave(ctx context.Context, auth *auth.Auth, account *keys.EdX25519Key) error {
 	path := dstore.Path("account", account.ID(), "auths")
 
 	encrypted, err := secretBoxMarshal(auth, account.Seed())

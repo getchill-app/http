@@ -41,7 +41,7 @@ func main() {
 		if err := cl.AccountCreate(context.TODO(), accountKey, *email, *code); err != nil {
 			log.Fatal(err)
 		}
-		if err := cl.AccountSetUsername(context.TODO(), accountKey, *username); err != nil {
+		if err := cl.AccountSetUsername(context.TODO(), *username, accountKey); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Printf("Account created.\n")

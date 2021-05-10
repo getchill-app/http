@@ -27,6 +27,6 @@ func TestAccount(t *testing.T, cl *client.Client, emailer *TestEmailer, key *key
 	require.NotEmpty(t, code)
 	err = cl.AccountCreate(ctx, key, email, code)
 	require.NoError(t, err)
-	err = cl.AccountSetUsername(ctx, key, username)
+	err = cl.AccountSetUsername(ctx, username, key)
 	require.NoError(t, err)
 }

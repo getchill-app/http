@@ -29,7 +29,8 @@ func TestChannel(t *testing.T) {
 	require.NoError(t, err)
 
 	channelKey := keys.NewEdX25519KeyFromSeed(testutil.Seed(0xc0))
-	token, err := aliceClient.ChannelCreate(ctx, channelKey, alice)
+	info := &api.ChannelInfo{Name: "testing"}
+	token, err := aliceClient.ChannelCreate(ctx, channelKey, info, alice)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 
@@ -44,7 +45,7 @@ func TestChannel(t *testing.T) {
 	// Bob
 	bobClient := testutil.NewTestClient(t, env)
 	bob := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x02))
-	err = aliceClient.AccountInvite(ctx, alice, "bob@keys.pub")
+	err = aliceClient.AccountInvite(ctx, "bob@keys.pub", alice)
 	require.NoError(t, err)
 	testAccount(t, bobClient, emailer, bob, "bob@keys.pub", "bob")
 
@@ -55,6 +56,7 @@ func TestChannel(t *testing.T) {
 
 	channel, err := bobClient.Channel(ctx, channelKey)
 	require.NoError(t, err)
+	require.Equal(t, "testing", channel.Info(channelKey).Name)
 
 	tokens := []*api.ChannelToken{{Channel: channelKey.ID(), Token: channel.Token}}
 	channels, err := bobClient.Channels(ctx, tokens, bob)

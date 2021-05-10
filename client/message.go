@@ -22,12 +22,12 @@ type Messages struct {
 
 // SendMessage sends message data to the channel.
 // Data is encrypted with the channel key before saving.
-func (c *Client) SendMessage(ctx context.Context, msg *api.Message, channel *keys.EdX25519Key, sender *keys.EdX25519Key) error {
+func (c *Client) SendMessage(ctx context.Context, message *api.Message, channel *keys.EdX25519Key, sender *keys.EdX25519Key) error {
 	if channel == nil {
 		return errors.Errorf("no api key")
 	}
 
-	b, _ := msgpack.Marshal(msg)
+	b, _ := msgpack.Marshal(message)
 
 	encrypted := api.EncryptMessage(b, channel, sender)
 

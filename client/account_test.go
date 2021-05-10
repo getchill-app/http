@@ -30,9 +30,9 @@ func TestAccount(t *testing.T) {
 	err = client.AccountCreate(ctx, alice, "alice@keys.pub", code)
 	require.NoError(t, err)
 
-	err = client.AccountSetUsername(ctx, alice, "alice")
+	err = client.AccountSetUsername(ctx, "alice", alice)
 	require.NoError(t, err)
-	err = client.AccountSetUsername(ctx, alice, "alice2")
+	err = client.AccountSetUsername(ctx, "alice2", alice)
 	require.EqualError(t, err, "username already set (400)")
 
 	resp, err := client.Account(ctx, alice)
@@ -62,7 +62,7 @@ func TestAccount(t *testing.T) {
 	pw, err := auth.NewPassword("testpassword", mk)
 	require.NoError(t, err)
 
-	err = client.AccountAuthSave(ctx, alice, pw)
+	err = client.AccountAuthSave(ctx, pw, alice)
 	require.NoError(t, err)
 
 	out, err := client.AccountAuths(ctx, alice)
@@ -83,6 +83,6 @@ func testAccount(t *testing.T, cl *client.Client, emailer *testutil.TestEmailer,
 	require.NotEmpty(t, code)
 	err = cl.AccountCreate(ctx, key, email, code)
 	require.NoError(t, err)
-	err = cl.AccountSetUsername(ctx, key, username)
+	err = cl.AccountSetUsername(ctx, username, key)
 	require.NoError(t, err)
 }

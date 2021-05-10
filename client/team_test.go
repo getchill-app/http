@@ -7,7 +7,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/getchill-app/http/api"
-	"github.com/getchill-app/http/client"
 	"github.com/getchill-app/http/client/testutil"
 	"github.com/getchill-app/http/server"
 	"github.com/keys-pub/keys"
@@ -37,7 +36,7 @@ func TestTeamSetup(t *testing.T) {
 	require.Equal(t, alice.ID(), out.CreatedBy)
 }
 
-func TestTeamCreate(t *testing.T) {
+func TestTeamCreateChannel(t *testing.T) {
 	env, closeFn := testutil.NewEnv(t, server.NoLevel)
 	defer closeFn()
 	emailer := testutil.NewTestEmailer()
@@ -60,21 +59,21 @@ func TestTeamCreate(t *testing.T) {
 
 	// Create channel
 	channel := keys.GenerateEdX25519Key()
-	created, err := aliceClient.TeamCreateChannel(ctx, team.ID(), alice, channel)
+	info := &api.ChannelInfo{Name: "testing"}
+	token, err := aliceClient.TeamCreateChannel(ctx, team.ID(), channel, info, alice)
 	require.NoError(t, err)
-	require.NotEmpty(t, created.Token)
+	require.NotEmpty(t, token)
 
-	resp, err := aliceClient.TeamChannels(ctx, team, nil)
+	channels, err := aliceClient.TeamChannels(ctx, team)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.Channels))
-	require.Equal(t, channel.ID(), resp.Channels[0].ID)
+	require.Equal(t, 1, len(channels))
+	require.Equal(t, channel.ID(), channels[0].ID)
 
-	resp, err = aliceClient.TeamChannels(ctx, team, &client.TeamVaultsOpts{EncryptedKeys: true})
+	channels, err = aliceClient.TeamChannelKeys(ctx, team)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.Channels))
-	require.Equal(t, channel.ID(), resp.Channels[0].ID)
-
-	channelOut, err := api.DecryptKey(resp.Channels[0].EncryptedKey, team)
+	require.Equal(t, 1, len(channels))
+	require.Equal(t, channel.ID(), channels[0].ID)
+	channelOut, err := api.DecryptKey(channels[0].EncryptedKey, team)
 	require.NoError(t, err)
 	require.Equal(t, channelOut, channel)
 
@@ -92,16 +91,16 @@ func TestTeamCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, teamOut, team)
 
-	resp, err = bobClient.TeamChannels(ctx, team, nil)
+	channels, err = bobClient.TeamChannels(ctx, team)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(resp.Channels))
-	require.Equal(t, channel.ID(), resp.Channels[0].ID)
+	require.Equal(t, 1, len(channels))
+	require.Equal(t, channel.ID(), channels[0].ID)
 
 	// Charlie
 	charlieClient := testutil.NewTestClient(t, env)
 	charlie := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
 
-	err = aliceClient.AccountInvite(ctx, alice, "charlie@keys.pub")
+	err = aliceClient.AccountInvite(ctx, "charlie@keys.pub", alice)
 	require.NoError(t, err)
 
 	testAccount(t, charlieClient, emailer, charlie, "charlie@keys.pub", "charlie")

@@ -24,20 +24,32 @@ type Channel struct {
 	Usage   int64 `json:"usage,omitempty"`
 	Deleted bool  `json:"del,omitempty"`
 
-	Team      keys.ID `json:"team"`
-	CreatedBy keys.ID `json:"createdBy"`
+	Team          keys.ID `json:"team,omitempty"`
+	CreatedBy     keys.ID `json:"createdBy,omitempty"`
+	EncryptedInfo []byte  `json:"info,omitempty"`
+	EncryptedKey  []byte  `json:"ek,omitempty"`
 }
 
 func (s *Server) putChannel(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
+	body, err := readBody(c, false, 64*1024)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
 	// Auth
-	acct, err := s.authAccount(c, "", nil)
+	acct, err := s.authAccount(c, "", body)
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
 	aid := acct.KID
+
+	var req api.ChannelCreateRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		return s.ErrBadRequest(c, err)
+	}
 
 	cid, err := keys.ParseID(c.Param("cid"))
 	if err != nil {
@@ -60,9 +72,10 @@ func (s *Server) putChannel(c echo.Context) error {
 
 	// Create channel
 	create := &Channel{
-		ID:        cid,
-		Token:     token,
-		CreatedBy: aid,
+		ID:            cid,
+		Token:         token,
+		CreatedBy:     aid,
+		EncryptedInfo: req.EncryptedInfo,
 	}
 	path := dstore.Path("channels", cid)
 	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
@@ -96,6 +109,49 @@ func (s *Server) putChannel(c echo.Context) error {
 	return JSON(c, http.StatusOK, channel)
 }
 
+func (s *Server) putChannelInfo(c echo.Context) error {
+	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
+	ctx := c.Request().Context()
+
+	body, err := readBody(c, false, 64*1024)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	// Auth
+	auth, err := s.authAccount(c, "cid", body)
+	if err != nil {
+		return s.ErrForbidden(c, err)
+	}
+	cid := auth.KID
+
+	// Check if existing
+	existing, err := s.channel(ctx, cid)
+	if err != nil {
+		return s.ErrResponse(c, err)
+	}
+	if existing == nil {
+		return s.ErrNotFound(c, errors.Errorf("channel not found"))
+	}
+	if existing.Deleted {
+		return s.ErrBadRequest(c, errors.Errorf("channel was deleted"))
+	}
+
+	update := struct {
+		Info []byte `json:"info"`
+	}{
+		Info: body,
+	}
+
+	path := dstore.Path("channels", cid)
+	if err := s.fi.Set(ctx, path, dstore.From(update), dstore.MergeAll()); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
+	var out struct{}
+	return c.JSON(http.StatusOK, out)
+}
+
 func (s *Server) getChannel(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
@@ -117,10 +173,12 @@ func (s *Server) getChannel(c echo.Context) error {
 	}
 
 	return JSON(c, http.StatusOK, &api.Channel{
-		ID:        channel.ID,
-		Index:     channel.Index,
-		Timestamp: channel.Timestamp,
-		Token:     channel.Token,
+		ID:            channel.ID,
+		Index:         channel.Index,
+		Timestamp:     channel.Timestamp,
+		Token:         channel.Token,
+		EncryptedInfo: channel.EncryptedInfo,
+		EncryptedKey:  channel.EncryptedKey,
 	})
 }
 

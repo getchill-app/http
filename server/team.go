@@ -9,7 +9,6 @@ import (
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/http"
-	"github.com/keys-pub/keys/tsutil"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 )
@@ -153,20 +152,15 @@ func (s *Server) verifyTeam(ctx context.Context, team *api.Team) error {
 	return nil
 }
 
-type teamChannel struct {
-	KID          keys.ID `json:"kid"`
-	EncryptedKey []byte  `json:"ek"`
-}
-
-func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*teamChannel, error) {
+func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*Channel, error) {
 	ctx := c.Request().Context()
-	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("teams", kid, "channels"))
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("channels"), dstore.Where("team", "==", kid.String()))
 	if err != nil {
 		return nil, err
 	}
 	defer iter.Release()
 
-	ovs := []*teamChannel{}
+	ovs := []*Channel{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -175,7 +169,7 @@ func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*teamChannel, e
 		if doc == nil {
 			break
 		}
-		var ov teamChannel
+		var ov Channel
 		if err := doc.To(&ov); err != nil {
 			return nil, err
 		}
@@ -205,12 +199,13 @@ func (s *Server) putTeamChannel(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	var req api.TeamChannelCreateRequest
-	if err := json.Unmarshal(body, &req); err != nil {
+	cid, err := keys.ParseID(c.Param("cid"))
+	if err != nil {
 		return s.ErrBadRequest(c, err)
 	}
-	cid, err := keys.ParseID(req.KID)
-	if err != nil {
+
+	var req api.TeamChannelCreateRequest
+	if err := json.Unmarshal(body, &req); err != nil {
 		return s.ErrBadRequest(c, err)
 	}
 
@@ -224,22 +219,15 @@ func (s *Server) putTeamChannel(c echo.Context) error {
 
 	// Create
 	create := &Channel{
-		ID:        cid,
-		Token:     team.Token,
-		Team:      tid,
-		CreatedBy: aid,
+		ID:            cid,
+		Token:         team.Token,
+		Team:          tid,
+		CreatedBy:     aid,
+		EncryptedInfo: req.EncryptedInfo,
+		EncryptedKey:  req.EncryptedKey,
 	}
 	path := dstore.Path("channels", cid)
 	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	ov := &teamChannel{
-		KID:          cid,
-		EncryptedKey: req.EncyptedKey,
-	}
-	teamPath := dstore.Path("teams", tid, "channels", cid)
-	if err := s.fi.Create(ctx, teamPath, dstore.From(ov)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
@@ -254,37 +242,29 @@ func (s *Server) getTeamChannels(c echo.Context) error {
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	cid := auth.KID
 
 	includeEncryptedKey := c.QueryParam("ek") == "1"
+	includeEncryptedInfo := c.QueryParam("einfo") == "1"
 
-	channels, err := s.channelsForTeam(c, auth.KID)
+	channels, err := s.channelsForTeam(c, cid)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 	paths := []string{}
-	ekm := map[keys.ID][]byte{}
 	for _, channel := range channels {
-		paths = append(paths, dstore.Path("channels", channel.KID))
-		ekm[channel.KID] = channel.EncryptedKey
+		paths = append(paths, dstore.Path("channels", channel.ID))
 	}
 
-	docs, err := s.fi.GetAll(ctx, paths)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
 	positions, err := s.fi.EventPositions(ctx, paths)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
 
-	tcs := make([]*api.Channel, 0, len(docs))
-	for _, doc := range docs {
-		var channel Channel
-		if err := doc.To(&channel); err != nil {
-			return s.ErrResponse(c, err)
-		}
-		channel.Timestamp = tsutil.Millis(doc.UpdatedAt)
-		position := positions[doc.Path]
+	tcs := make([]*api.Channel, 0, len(channels))
+	for _, channel := range channels {
+		path := dstore.Path("channels", channel.ID)
+		position := positions[path]
 		if position != nil {
 			channel.Index = position.Index
 			if position.Timestamp > 0 {
@@ -298,7 +278,10 @@ func (s *Server) getTeamChannels(c echo.Context) error {
 			Token:     channel.Token,
 		}
 		if includeEncryptedKey {
-			out.EncryptedKey = ekm[channel.ID]
+			out.EncryptedKey = channel.EncryptedKey
+		}
+		if includeEncryptedInfo {
+			out.EncryptedInfo = channel.EncryptedInfo
 		}
 		tcs = append(tcs, out)
 	}

@@ -45,16 +45,18 @@ type TeamStatement struct {
 
 type TeamInviteRequest struct {
 	EncryptedKey []byte `json:"ek"`
-	Email        string `json:"email"`
+	Email        string `json:"email,omitempty"`
 }
 
 type TeamInviteResponse struct {
 	EncryptedKey []byte `json:"ek"`
+	RegisterCode string `json:"registerCode,omitempty"`
 }
 
 type TeamInvite struct {
 	EncryptedKey []byte    `json:"ek"`
 	Email        string    `json:"email,omitempty"`
+	RegisterCode string    `json:"registerCode,omitempty"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
 

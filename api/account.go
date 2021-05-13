@@ -8,7 +8,8 @@ import (
 
 // AccountRegisterRequest ...
 type AccountRegisterRequest struct {
-	Email string `json:"email"`
+	Email        string `json:"email"`
+	RegisterCode string `json:"registerCode"`
 }
 
 type AccountUnverified struct {
@@ -35,8 +36,8 @@ type SendEmailVerificationResponse struct {
 
 // AccountCreateRequest ...
 type AccountCreateRequest struct {
-	Email string `json:"email"`
-	Code  string `json:"code"`
+	Email           string `json:"email"`
+	VerifyEmailCode string `json:"verifyEmailCode"`
 }
 
 // AccountResponse ...
@@ -70,9 +71,10 @@ type AccountAuthsResponse struct {
 
 // AccountRegisterInviteRequest ...
 type AccountRegisterInviteRequest struct {
-	Email string `json:"email"`
+	Email string `json:"email,omitempty"`
 }
 
 type AccountRegisterInvite struct {
-	Email string `json:"email"`
+	Email        string `json:"email,omitempty"`
+	RegisterCode string `json:"registerCode,omitempty"`
 }

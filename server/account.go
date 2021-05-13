@@ -63,7 +63,7 @@ func (s *Server) putAccount(c echo.Context) error {
 	if s.clock.Now().Sub(unverifiedAcct.VerifyEmailCodeAt) > time.Hour {
 		return s.ErrBadRequest(c, errors.Errorf("invalid code"))
 	}
-	if subtle.ConstantTimeCompare([]byte(unverifiedAcct.VerifyEmailCode), []byte(req.Code)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(unverifiedAcct.VerifyEmailCode), []byte(req.VerifyEmailCode)) != 1 {
 		return s.ErrBadRequest(c, errors.Errorf("invalid code"))
 	}
 

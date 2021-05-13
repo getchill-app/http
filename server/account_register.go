@@ -37,14 +37,26 @@ func (s *Server) putAccountRegister(c echo.Context) error {
 	}
 	email := strings.ToLower(req.Email)
 
-	invited, err := s.registerEmailInvited(ctx, email)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	if !invited {
-		return s.ErrBadRequest(c, errors.Errorf("not invited"))
+	// If using register code, check that otherwise check email address
+	if req.RegisterCode != "" {
+		valid, err := s.isRegisterCodeValid(ctx, req.RegisterCode)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		if !valid {
+			return s.ErrBadRequest(c, errors.Errorf("invalid code"))
+		}
+	} else {
+		invited, err := s.isEmailInvited(ctx, email)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		if !invited {
+			return s.ErrBadRequest(c, errors.Errorf("not invited"))
+		}
 	}
 
+	// See if there is an existing unverified account
 	acct, err := s.findUnverifiedAccountByEmail(ctx, email)
 	if err != nil {
 		return s.ErrResponse(c, err)
@@ -142,7 +154,7 @@ func (s *Server) putAccountInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	if err := s.accountInvite(ctx, req.Email, aid); err != nil {
+	if err := s.accountInvite(ctx, req.Email, "", aid); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
@@ -150,24 +162,39 @@ func (s *Server) putAccountInvite(c echo.Context) error {
 	return JSON(c, http.StatusOK, out)
 }
 
-func (s *Server) accountInvite(ctx context.Context, email string, from keys.ID) error {
-	if err := checkmail.ValidateFormat(email); err != nil {
-		return newError(http.StatusBadRequest, errors.Errorf("invalid email"))
+func (s *Server) accountInvite(ctx context.Context, email string, registerCode string, from keys.ID) error {
+	if email != "" {
+		if err := checkmail.ValidateFormat(email); err != nil {
+			return newError(http.StatusBadRequest, errors.Errorf("invalid email"))
+		}
 	}
-
 	invite := api.AccountRegisterInvite{
-		Email: email,
+		Email:        email,
+		RegisterCode: registerCode,
 	}
 
-	if err := s.fi.Set(ctx, dstore.Path("account-invites", email), dstore.From(invite)); err != nil {
+	id := encoding.MustEncode(keys.RandBytes(32), encoding.Base62)
+	if err := s.fi.Set(ctx, dstore.Path("account-invites", id), dstore.From(invite)); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func (s *Server) registerEmailInvited(ctx context.Context, email string) (bool, error) {
+func (s *Server) isEmailInvited(ctx context.Context, email string) (bool, error) {
 	iter, err := s.fi.DocumentIterator(ctx, "account-invites", dstore.Where("email", "==", email))
+	if err != nil {
+		return false, err
+	}
+	defer iter.Release()
+	doc, err := iter.Next()
+	if err != nil {
+		return false, err
+	}
+	return doc != nil, nil
+}
+
+func (s *Server) isRegisterCodeValid(ctx context.Context, registerCode string) (bool, error) {
+	iter, err := s.fi.DocumentIterator(ctx, "account-invites", dstore.Where("registerCode", "==", registerCode))
 	if err != nil {
 		return false, err
 	}

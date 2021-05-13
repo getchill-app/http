@@ -60,11 +60,11 @@ func testAccountCreate(t *testing.T, env *env, srv *testServerEnv, key *keys.EdX
 	code, _, body := srv.Serve(req)
 	require.Equal(t, http.StatusOK, code)
 	require.Equal(t, `{}`, string(body))
-	verifyCode := srv.Emailer.SentVerificationEmail("alice@keys.pub")
-	require.NotEmpty(t, verifyCode)
+	verifyEmailCode := srv.Emailer.SentVerificationEmail("alice@keys.pub")
+	require.NotEmpty(t, verifyEmailCode)
 
 	// PUT /account/:aid
-	createReq := &api.AccountCreateRequest{Email: email, Code: verifyCode}
+	createReq := &api.AccountCreateRequest{Email: email, VerifyEmailCode: verifyEmailCode}
 	req, err = http.NewJSONRequest("PUT", dstore.Path("account", key.ID()), createReq, http.WithTimestamp(env.clock.Now()), http.SignedWith(key))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)
@@ -87,7 +87,7 @@ func TestAccountInvalidCode(t *testing.T) {
 	require.Equal(t, `{}`, string(body))
 
 	// PUT /account/:aid
-	createReq := &api.AccountCreateRequest{Email: "alice@keys.pub", Code: "invalidCode"}
+	createReq := &api.AccountCreateRequest{Email: "alice@keys.pub", VerifyEmailCode: "invalidCode"}
 	req, err = http.NewJSONRequest("PUT", dstore.Path("account", alice.ID()), createReq, http.WithTimestamp(env.clock.Now()), http.SignedWith(alice))
 	require.NoError(t, err)
 	code, _, body = srv.Serve(req)

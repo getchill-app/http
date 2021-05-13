@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/badoux/checkmail v1.2.1
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210510182501-72011d2e58aa
+	github.com/getchill-app/http/api v0.0.0-20210513003631-9b9948ca12d6
 	github.com/getchill-app/ws/api v0.0.0-20210504010258-9e1738caa70d
 	github.com/keys-pub/keys v0.1.22-0.20210417135906-1bd8b8cf63b7
 	github.com/keys-pub/keys-ext/firestore v0.0.0-20210402220629-6f43cbf06c54

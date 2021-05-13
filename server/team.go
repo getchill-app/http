@@ -242,12 +242,12 @@ func (s *Server) getTeamChannels(c echo.Context) error {
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
-	cid := auth.KID
+	tid := auth.KID
 
 	includeEncryptedKey := c.QueryParam("ek") == "1"
 	includeEncryptedInfo := c.QueryParam("einfo") == "1"
 
-	channels, err := s.channelsForTeam(c, cid)
+	channels, err := s.channelsForTeam(c, tid)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -317,15 +317,19 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	if err := s.accountInvite(ctx, req.Email, acct.KID); err != nil {
+	registerCode := keys.RandPassword(12)
+	if err := s.accountInvite(ctx, req.Email, registerCode, acct.KID); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
 	invite := api.TeamInvite{
 		EncryptedKey: req.EncryptedKey,
 		Email:        req.Email,
+		RegisterCode: registerCode,
 		CreatedAt:    s.clock.Now(),
 	}
+
+	// TODO: Invite expiry?
 
 	path := dstore.Path("invites", id)
 	if err := s.fi.Set(ctx, path, dstore.From(invite)); err != nil {
@@ -359,6 +363,7 @@ func (s *Server) getTeamInvite(c echo.Context) error {
 	if doc == nil {
 		return s.ErrNotFound(c, errors.Errorf("invite not found"))
 	}
+	// Delete the invite after it is requested
 	if _, err := s.fi.Delete(ctx, path); err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -374,6 +379,7 @@ func (s *Server) getTeamInvite(c echo.Context) error {
 
 	resp := &api.TeamInviteResponse{
 		EncryptedKey: invite.EncryptedKey,
+		RegisterCode: invite.RegisterCode,
 	}
 	return JSON(c, http.StatusOK, resp)
 }

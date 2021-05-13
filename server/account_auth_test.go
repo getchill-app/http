@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/getchill-app/http/api"
+	"github.com/getchill-app/keyring/auth"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/http"
-	"github.com/keys-pub/vault/auth"
 	"github.com/stretchr/testify/require"
 	"github.com/vmihailenco/msgpack/v4"
 )

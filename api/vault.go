@@ -46,6 +46,6 @@ type Vault struct {
 
 // VaultToken ...
 type VaultToken struct {
-	KID   keys.ID `json:"kid"`
+	Vault keys.ID `json:"vault"`
 	Token string  `json:"token"`
 }

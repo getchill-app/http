@@ -28,15 +28,6 @@ type TeamsResponse struct {
 	Teams []*Team `json:"teams"`
 }
 
-type TeamChannelCreateRequest struct {
-	EncryptedKey  []byte `json:"ek"`
-	EncryptedInfo []byte `json:"einfo"`
-}
-
-type TeamChannelsResponse struct {
-	Channels []*Channel `json:"channels"`
-}
-
 type TeamStatement struct {
 	KID       keys.ID `json:"kid"`
 	Domain    string  `json:"domain"`
@@ -44,17 +35,17 @@ type TeamStatement struct {
 }
 
 type TeamInviteRequest struct {
-	EncryptedKey []byte `json:"ek"`
-	Email        string `json:"email,omitempty"`
+	TeamKey Encrypted `json:"tk"`
+	Email   string    `json:"email,omitempty"`
 }
 
 type TeamInviteResponse struct {
-	EncryptedKey []byte `json:"ek"`
-	RegisterCode string `json:"registerCode,omitempty"`
+	TeamKey      Encrypted `json:"tk"`
+	RegisterCode string    `json:"registerCode,omitempty"`
 }
 
 type TeamInvite struct {
-	EncryptedKey []byte    `json:"ek"`
+	TeamKey      Encrypted `json:"tk"`
 	Email        string    `json:"email,omitempty"`
 	RegisterCode string    `json:"registerCode,omitempty"`
 	CreatedAt    time.Time `json:"createdAt"`

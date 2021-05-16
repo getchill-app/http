@@ -31,7 +31,7 @@ func (c *Client) SendMessage(ctx context.Context, message *api.Message, channel 
 
 	encrypted := api.EncryptMessage(b, channel, sender)
 
-	path := dstore.Path("messages", channel.ID())
+	path := dstore.Path("channel", channel.ID(), "messages")
 	start := time.Time{}
 	total := int64(0)
 	progress := func(n int64) {
@@ -57,7 +57,7 @@ func (c *Client) Messages(ctx context.Context, channel *keys.EdX25519Key, index 
 	if channel == nil {
 		return nil, errors.Errorf("no channel key")
 	}
-	path := dstore.Path("messages", channel.ID())
+	path := dstore.Path("channel", channel.ID(), "messages")
 	params := url.Values{}
 	if index != 0 {
 		params.Add("idx", strconv.FormatInt(index, 10))

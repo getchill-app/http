@@ -304,29 +304,6 @@ func (s *Server) deleteChannel(c echo.Context) error {
 	return JSON(c, http.StatusOK, resp)
 }
 
-func (s *Server) headChannel(c echo.Context) error {
-	ctx := c.Request().Context()
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-
-	auth, err := s.auth(c, newAuthRequest("Authorization", "cid", nil))
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-
-	channel, err := s.channel(ctx, auth.KID)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	if channel == nil {
-		return s.ErrNotFound(c, errors.Errorf("channel not found"))
-	}
-	if channel.Deleted {
-		return s.ErrNotFound(c, errors.Errorf("channel was deleted"))
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
 func (s *Server) getChannels(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()

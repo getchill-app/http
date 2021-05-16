@@ -10,11 +10,17 @@ import (
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
 	"github.com/keys-pub/keys/http/client"
-	"github.com/pkg/errors"
 )
 
-// ChannelCreate creates a channel and returns token.
-func (c *Client) ChannelCreate(ctx context.Context, channel *keys.EdX25519Key, info *api.ChannelInfo, account *keys.EdX25519Key) (string, error) {
+func (c *Client) ChannelCreateWithTeam(ctx context.Context, channel *keys.EdX25519Key, info *api.ChannelInfo, team keys.ID, account *keys.EdX25519Key) (string, error) {
+	return c.channelCreate(ctx, channel, info, team, nil, account)
+}
+
+func (c *Client) ChannelCreateWithUsers(ctx context.Context, channel *keys.EdX25519Key, info *api.ChannelInfo, users []keys.ID, account *keys.EdX25519Key) (string, error) {
+	return c.channelCreate(ctx, channel, info, "", users, account)
+}
+
+func (c *Client) channelCreate(ctx context.Context, channel *keys.EdX25519Key, info *api.ChannelInfo, team keys.ID, users []keys.ID, account *keys.EdX25519Key) (string, error) {
 	logger.Debugf("Create channel %s", channel.ID())
 	path := dstore.Path("channel", channel.ID())
 
@@ -23,8 +29,28 @@ func (c *Client) ChannelCreate(ctx context.Context, channel *keys.EdX25519Key, i
 		return "", err
 	}
 	req := &api.ChannelCreateRequest{
-		EncryptedInfo: encryptedInfo,
+		Info: encryptedInfo,
+		Team: team,
 	}
+
+	userKeys := []*api.UserKey{}
+	for _, user := range users {
+		uk, err := api.EncryptKey(channel, user)
+		if err != nil {
+			return "", err
+		}
+		userKeys = append(userKeys, &api.UserKey{User: user, Key: uk})
+	}
+	req.UserKeys = userKeys
+
+	if team != "" {
+		tk, err := api.EncryptKey(channel, team)
+		if err != nil {
+			return "", err
+		}
+		req.TeamKey = tk
+	}
+
 	body, err := json.Marshal(req)
 	if err != nil {
 		return "", err
@@ -42,10 +68,10 @@ func (c *Client) ChannelCreate(ctx context.Context, channel *keys.EdX25519Key, i
 	return ch.Token, nil
 }
 
-func (c *Client) Channel(ctx context.Context, channel *keys.EdX25519Key) (*api.Channel, error) {
+func (c *Client) Channel(ctx context.Context, channel *keys.EdX25519Key, account *keys.EdX25519Key) (*api.Channel, error) {
 	logger.Debugf("Get channel %s", channel.ID())
 	path := dstore.Path("channel", channel.ID())
-	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: channel})
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: account})
 	if err != nil {
 		return nil, err
 	}
@@ -60,24 +86,12 @@ func (c *Client) Channel(ctx context.Context, channel *keys.EdX25519Key) (*api.C
 	return &ch, nil
 }
 
-func (c *Client) Channels(ctx context.Context, tokens []*api.ChannelToken, account *keys.EdX25519Key) ([]*api.Channel, error) {
-	statusReq := &api.ChannelsRequest{
-		Channels: map[keys.ID]string{},
-	}
-	for _, ch := range tokens {
-		if ch.Token == "" {
-			return nil, errors.Errorf("empty token")
-		}
-		statusReq.Channels[ch.Channel] = ch.Token
-	}
-
-	body, err := json.Marshal(statusReq)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Client) Channels(ctx context.Context, team keys.ID, account *keys.EdX25519Key) ([]*api.Channel, error) {
 	params := url.Values{}
-	resp, err := c.Request(ctx, &client.Request{Method: "POST", Path: "/channels", Params: params, Body: body, Key: account})
+	if team != "" {
+		params.Set("team", team.String())
+	}
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: "/channels", Params: params, Key: account})
 	if err != nil {
 		return nil, err
 	}

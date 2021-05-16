@@ -60,20 +60,15 @@ func TestTeamCreateChannel(t *testing.T) {
 	// Create channel
 	channel := keys.GenerateEdX25519Key()
 	info := &api.ChannelInfo{Name: "testing"}
-	token, err := aliceClient.TeamCreateChannel(ctx, team.ID(), channel, info, alice)
+	token, err := aliceClient.ChannelCreateWithTeam(ctx, channel, info, team.ID(), alice)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 
-	channels, err := aliceClient.TeamChannels(ctx, team)
+	channels, err := aliceClient.Channels(ctx, team.ID(), alice)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(channels))
 	require.Equal(t, channel.ID(), channels[0].ID)
-
-	channels, err = aliceClient.TeamChannelKeys(ctx, team)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(channels))
-	require.Equal(t, channel.ID(), channels[0].ID)
-	channelOut, err := api.DecryptKey(channels[0].EncryptedKey, team)
+	channelOut, err := api.DecryptKey(channels[0].TeamKey, team)
 	require.NoError(t, err)
 	require.Equal(t, channelOut, channel)
 
@@ -89,9 +84,9 @@ func TestTeamCreateChannel(t *testing.T) {
 
 	teamOut, err := bobClient.TeamInviteOpen(ctx, phrase, bob)
 	require.NoError(t, err)
-	require.Equal(t, teamOut, team)
+	require.Equal(t, teamOut.TeamKey, team)
 
-	channels, err = bobClient.TeamChannels(ctx, team)
+	channels, err = bobClient.Channels(ctx, team.ID(), bob)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(channels))
 	require.Equal(t, channel.ID(), channels[0].ID)
@@ -105,10 +100,9 @@ func TestTeamCreateChannel(t *testing.T) {
 
 	testAccount(t, charlieClient, emailer, charlie, "charlie@keys.pub", "charlie")
 
-	phrase, err = aliceClient.TeamInvite(ctx, team, "bob@keys.pub", alice)
-	require.NoError(t, err)
-
 	// Try to open bob's invite
+	phrase, err = aliceClient.TeamInvite(ctx, team, "dan@keys.pub", alice)
+	require.NoError(t, err)
 	_, err = charlieClient.TeamInviteOpen(ctx, phrase, charlie)
 	require.EqualError(t, err, "invalid email (403)")
 }

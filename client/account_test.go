@@ -21,7 +21,7 @@ func TestAccount(t *testing.T) {
 	ctx := context.TODO()
 	var err error
 
-	err = client.AccountRegister(ctx, "alice@keys.pub")
+	err = client.AccountRegister(ctx, "alice@keys.pub", "")
 	require.NoError(t, err)
 	code := emailer.SentVerificationEmail("alice@keys.pub")
 	require.NotEmpty(t, code)
@@ -69,7 +69,7 @@ func TestAccount(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(out))
 
-	err = client.AccountRegister(ctx, "invalid")
+	err = client.AccountRegister(ctx, "invalid", "")
 	require.EqualError(t, err, "invalid email (400)")
 }
 
@@ -77,11 +77,11 @@ func testAccount(t *testing.T, cl *client.Client, emailer *testutil.TestEmailer,
 	var err error
 	ctx := context.TODO()
 
-	err = cl.AccountRegister(ctx, email)
+	err = cl.AccountRegister(ctx, email, "")
 	require.NoError(t, err)
-	code := emailer.SentVerificationEmail(email)
-	require.NotEmpty(t, code)
-	err = cl.AccountCreate(ctx, key, email, code)
+	verifyCode := emailer.SentVerificationEmail(email)
+	require.NotEmpty(t, verifyCode)
+	err = cl.AccountCreate(ctx, key, email, verifyCode)
 	require.NoError(t, err)
 	err = cl.AccountSetUsername(ctx, username, key)
 	require.NoError(t, err)

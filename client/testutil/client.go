@@ -17,11 +17,11 @@ func NewTestClient(t *testing.T, env *Env) *client.Client {
 	return cl
 }
 
-func TestAccount(t *testing.T, cl *client.Client, emailer *TestEmailer, key *keys.EdX25519Key, email string, username string) {
+func TestAccount(t *testing.T, cl *client.Client, emailer *TestEmailer, key *keys.EdX25519Key, email string, registerCode string, username string) {
 	var err error
 	ctx := context.TODO()
 
-	err = cl.AccountRegister(ctx, email)
+	err = cl.AccountRegister(ctx, email, registerCode)
 	require.NoError(t, err)
 	code := emailer.SentVerificationEmail(email)
 	require.NotEmpty(t, code)

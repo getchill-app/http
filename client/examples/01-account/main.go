@@ -14,7 +14,7 @@ import (
 
 func main() {
 	email := flag.String("email", "", "Email to register")
-	code := flag.String("code", "", "Registration code")
+	verifyCode := flag.String("verify-code", "", "Email verification code")
 	username := flag.String("username", "", "Username")
 	flag.Parse()
 
@@ -23,13 +23,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if *code == "" {
+	if *verifyCode == "" {
 		fmt.Printf("Registering %s...\n", *email)
-		if err := cl.AccountRegister(context.TODO(), *email); err != nil {
+		if err := cl.AccountRegister(context.TODO(), *email, ""); err != nil {
 			log.Fatal(err)
 		}
 		fmt.Printf("Account registered, look for code in your email.\n")
 	} else {
+		if *username == "" {
+			log.Fatalf("username is required")
+		}
+
 		accountKey := keys.GenerateEdX25519Key()
 		key := api.NewKey(accountKey).Created(tsutil.NowMillis())
 		out, err := api.EncodeKey(key, "")
@@ -38,7 +42,7 @@ func main() {
 		}
 		fmt.Printf("Generated account key:\n%s\n", out)
 
-		if err := cl.AccountCreate(context.TODO(), accountKey, *email, *code); err != nil {
+		if err := cl.AccountCreate(context.TODO(), accountKey, *email, *verifyCode); err != nil {
 			log.Fatal(err)
 		}
 		if err := cl.AccountSetUsername(context.TODO(), *username, accountKey); err != nil {

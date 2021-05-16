@@ -12,9 +12,11 @@ import (
 	"github.com/keys-pub/keys/http/client"
 )
 
-func (c *Client) AccountRegister(ctx context.Context, email string) error {
+// Register account.
+// registerCode is optional if email address was invited explicitly.
+func (c *Client) AccountRegister(ctx context.Context, email string, registerCode string) error {
 	path := "/account/register"
-	body, _ := json.Marshal(&api.AccountCreateRequest{Email: email})
+	body, _ := json.Marshal(&api.AccountRegisterRequest{Email: email, RegisterCode: registerCode})
 	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body}); err != nil {
 		return err
 	}
@@ -30,9 +32,9 @@ func (c *Client) AccountInvite(ctx context.Context, email string, account *keys.
 	return nil
 }
 
-func (c *Client) AccountCreate(ctx context.Context, account *keys.EdX25519Key, email string, code string) error {
+func (c *Client) AccountCreate(ctx context.Context, account *keys.EdX25519Key, email string, verifyEmailCode string) error {
 	path := dstore.Path("account", account.ID())
-	body, _ := json.Marshal(&api.AccountCreateRequest{Email: email, Code: code})
+	body, _ := json.Marshal(&api.AccountCreateRequest{Email: email, VerifyEmailCode: verifyEmailCode})
 	if _, err := c.Request(ctx, &client.Request{Method: "PUT", Path: path, Body: body, Key: account}); err != nil {
 		return err
 	}

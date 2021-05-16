@@ -459,7 +459,7 @@ func (s *Server) notifyChannel(ctx context.Context, vt *api.ChannelToken, idx in
 	event := &wsapi.Event{
 		Type:  wsapi.ChannelType,
 		Token: vt.Token,
-		Vault: &wsapi.Vault{
+		Channel: &wsapi.Channel{
 			ID:    vt.Channel,
 			Index: idx,
 		},

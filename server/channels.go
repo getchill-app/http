@@ -455,12 +455,12 @@ func (s *Server) fillChannels(ctx context.Context, channels []*Channel) ([]*api.
 	return out, nil
 }
 
-func (s *Server) notifyChannel(ctx context.Context, vt *api.ChannelToken, idx int64) error {
+func (s *Server) notifyChannel(ctx context.Context, ct *api.ChannelToken, idx int64) error {
 	event := &wsapi.Event{
 		Type:  wsapi.ChannelType,
-		Token: vt.Token,
+		Token: ct.Token,
 		Channel: &wsapi.Channel{
-			ID:    vt.Channel,
+			ID:    ct.Channel,
 			Index: idx,
 		},
 	}

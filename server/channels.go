@@ -325,6 +325,7 @@ func (s *Server) getChannels(c echo.Context) error {
 	channels = append(channels, ucs...)
 
 	// Team channels
+	// TODO: Do we want to auth for team key?
 	if c.QueryParam("team") != "" {
 		tid, err := keys.ParseID(c.QueryParam("team"))
 		if err != nil {
@@ -423,6 +424,7 @@ func (s *Server) fillChannels(ctx context.Context, channels []*Channel) ([]*api.
 			Index:     channel.Index,
 			Timestamp: channel.Timestamp,
 			Info:      channel.Info,
+			Token:     channel.Token,
 			Team:      channel.Team,
 			TeamKey:   channel.TeamKey,
 		}

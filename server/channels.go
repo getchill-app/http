@@ -9,10 +9,11 @@ import (
 	wsapi "github.com/getchill-app/ws/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
-	"github.com/keys-pub/keys/tsutil"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 )
+
+type Encrypted = api.Encrypted
 
 type Channel struct {
 	ID keys.ID `json:"id" msgpack:"id"`
@@ -24,10 +25,19 @@ type Channel struct {
 	Usage   int64 `json:"usage,omitempty"`
 	Deleted bool  `json:"del,omitempty"`
 
-	Team          keys.ID `json:"team,omitempty"`
-	CreatedBy     keys.ID `json:"createdBy,omitempty"`
-	EncryptedInfo []byte  `json:"info,omitempty"`
-	EncryptedKey  []byte  `json:"ek,omitempty"`
+	CreatedBy keys.ID   `json:"createdBy,omitempty"`
+	Info      Encrypted `json:"info,omitempty"`
+
+	Team    keys.ID   `json:"team,omitempty"`
+	TeamKey Encrypted `json:"teamKey,omitempty"`
+
+	Users []keys.ID `json:"users,omitempty"`
+}
+
+type UserChannel struct {
+	User    keys.ID   `json:"user"`
+	Key     Encrypted `json:"key"`
+	Channel keys.ID   `json:"channel"`
 }
 
 func (s *Server) putChannel(c echo.Context) error {
@@ -68,44 +78,61 @@ func (s *Server) putChannel(c echo.Context) error {
 		return s.ErrBadRequest(c, errors.Errorf("channel already exists"))
 	}
 
-	token := s.GenerateToken()
-
 	// Create channel
 	create := &Channel{
-		ID:            cid,
-		Token:         token,
-		CreatedBy:     aid,
-		EncryptedInfo: req.EncryptedInfo,
+		ID:        cid,
+		CreatedBy: aid,
+		Info:      req.Info,
+		TeamKey:   req.TeamKey,
 	}
+
+	var token string
+	if req.Team != "" {
+		team, err := s.findTeam(ctx, req.Team)
+		if err != nil {
+			return s.ErrBadRequest(c, err)
+		}
+		if team == nil {
+			return s.ErrBadRequest(c, errors.Errorf("invalid team"))
+		}
+		create.Team = team.ID
+		token = team.Token
+	} else {
+		token = s.GenerateToken()
+	}
+	create.Token = token
+
+	users := []keys.ID{}
+	for _, userKey := range req.UserKeys {
+		userChannel := &UserChannel{
+			User:    userKey.User,
+			Channel: cid,
+			Key:     userKey.Key,
+		}
+		userPath := dstore.Path("users", userKey.User, "channels", cid)
+		if err := s.fi.Create(ctx, userPath, dstore.From(userChannel)); err != nil {
+			return s.ErrResponse(c, err)
+		}
+		users = append(users, userKey.User)
+	}
+	create.Users = users
+
 	path := dstore.Path("channels", cid)
 	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
-	// Increment account channel count
-	channelCount, _, err := s.fi.Increment(ctx, dstore.Path("accounts", aid), "channelCount", 1)
-	if err != nil {
-		return s.ErrResponse(c, err)
+	event := &wsapi.Event{
+		Type: wsapi.ChannelsType,
 	}
-	if channelCount > 500 {
-		return s.ErrForbidden(c, errors.Errorf("max account channels reached"))
+	if err := s.notifyEvent(ctx, event); err != nil {
+		s.logger.Errorf("Failed to notify event: %v", err)
 	}
 
-	// Save account channel
-	av := &api.AccountChannel{
-		Account: aid,
-		Channel: cid,
+	channel := api.Channel{
+		ID:    cid,
+		Token: token,
 	}
-	accountPath := dstore.Path("accounts", aid, "channels", cid)
-	if err := s.fi.Create(ctx, accountPath, dstore.From(av)); err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	channel, err := s.channel(ctx, cid)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
 	return JSON(c, http.StatusOK, channel)
 }
 
@@ -156,12 +183,18 @@ func (s *Server) getChannel(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	auth, err := s.auth(c, newAuthRequest("Authorization", "cid", nil))
+	auth, err := s.auth(c, newAuthRequest("Authorization", "", nil))
 	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := auth.KID
 
-	channel, err := s.channel(ctx, auth.KID)
+	cid, err := keys.ParseID(c.Param("cid"))
+	if err != nil {
+		return s.ErrBadRequest(c, err)
+	}
+
+	channel, err := s.channel(ctx, cid)
 	if err != nil {
 		return s.ErrResponse(c, err)
 	}
@@ -172,14 +205,27 @@ func (s *Server) getChannel(c echo.Context) error {
 		return s.ErrNotFound(c, errors.Errorf("channel was deleted"))
 	}
 
-	return JSON(c, http.StatusOK, &api.Channel{
-		ID:            channel.ID,
-		Index:         channel.Index,
-		Timestamp:     channel.Timestamp,
-		Token:         channel.Token,
-		EncryptedInfo: channel.EncryptedInfo,
-		EncryptedKey:  channel.EncryptedKey,
-	})
+	out := &api.Channel{
+		ID:        channel.ID,
+		Index:     channel.Index,
+		Timestamp: channel.Timestamp,
+		Info:      channel.Info,
+		TeamKey:   channel.TeamKey,
+		Team:      channel.Team,
+	}
+
+	if channel.Team == "" {
+		var uc UserChannel
+		ok, err := s.fi.Load(ctx, dstore.Path("users", aid, "channels", cid), &c)
+		if err != nil {
+			return s.ErrResponse(c, err)
+		}
+		if ok {
+			out.UserKey = uc.Key
+		}
+	}
+
+	return JSON(c, http.StatusOK, out)
 }
 
 func (s *Server) channel(ctx context.Context, kid keys.ID) (*Channel, error) {
@@ -192,6 +238,17 @@ func (s *Server) channel(ctx context.Context, kid keys.ID) (*Channel, error) {
 	if !ok {
 		return nil, nil
 	}
+
+	positions, err := s.fi.EventPositions(ctx, []string{path})
+	if err != nil {
+		return nil, err
+	}
+	position, ok := positions[path]
+	if ok {
+		channel.Index = position.Index
+		channel.Timestamp = position.Timestamp
+	}
+
 	return &channel, nil
 }
 
@@ -216,18 +273,30 @@ func (s *Server) deleteChannel(c echo.Context) error {
 		return s.ErrNotFound(c, errors.Errorf("channel was deleted"))
 	}
 
+	// Remove user channels
+	userPaths := []string{}
+	for _, user := range channel.Users {
+		userPaths = append(userPaths, dstore.Path("users", user, "channels", cid))
+	}
+	if len(userPaths) > 0 {
+		if err := s.fi.DeleteAll(ctx, userPaths); err != nil {
+			return s.ErrResponse(c, err)
+		}
+	}
+
+	// Remove messages
 	path := dstore.Path("channels", cid)
 	if _, err := s.fi.EventsDelete(ctx, path); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
-	// Create a deleted channel entry.
-	// TODO: Replace channel instead of delete/create.
-	create := &Channel{
+	// Set channel deleted
+	deleted := &Channel{
 		ID:      cid,
 		Deleted: true,
 	}
-	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
+	// TODO: Instead of delete/create, overwrite with deleted entry
+	if err := s.fi.Create(ctx, path, dstore.From(deleted)); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
@@ -258,84 +327,140 @@ func (s *Server) headChannel(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (s *Server) postChannels(c echo.Context) error {
+func (s *Server) getChannels(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
 	ctx := c.Request().Context()
 
-	body, err := readBody(c, false, 64*1024)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
 	// Auth
-	if _, err := s.authAccount(c, "", body); err != nil {
+	auth, err := s.auth(c, newAuthRequest("Authorization", "", nil))
+	if err != nil {
 		return s.ErrForbidden(c, err)
 	}
+	aid := auth.KID
 
-	var req api.ChannelsRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		return s.ErrBadRequest(c, errors.Errorf("invalid request"))
+	channels := []*api.Channel{}
+
+	// User channels
+	ucs, err := s.userChannels(ctx, aid)
+	if err != nil {
+		return s.ErrResponse(c, err)
 	}
-	paths := []string{}
-	for k := range req.Channels {
-		kid, err := keys.ParseID(string(k))
+	channels = append(channels, ucs...)
+
+	// Team channels
+	if c.QueryParam("team") != "" {
+		tid, err := keys.ParseID(c.QueryParam("team"))
 		if err != nil {
-			return s.ErrBadRequest(c, errors.Errorf("invalid request"))
+			return s.ErrBadRequest(c, errors.Errorf("invalid team"))
 		}
-		paths = append(paths, dstore.Path("channels", kid))
-	}
-
-	docs, err := s.fi.GetAll(ctx, paths)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	positions, err := s.fi.EventPositions(ctx, paths)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	channels := make([]*api.Channel, 0, len(docs))
-	for _, doc := range docs {
-		var channel api.Channel
-		if err := doc.To(&channel); err != nil {
+		tcs, err := s.teamChannels(ctx, tid)
+		if err != nil {
 			return s.ErrResponse(c, err)
 		}
-		token := req.Channels[channel.ID]
-		if token == "" {
-			s.logger.Infof("Missing token for channel %s", channel.ID)
-			continue
-		}
-		if token != channel.Token {
-			s.logger.Infof("Invalid token for channel %s", channel.ID)
-			continue
-		}
-		channel.Timestamp = tsutil.Millis(doc.UpdatedAt)
-		position := positions[doc.Path]
-		if position != nil {
-			channel.Index = position.Index
-			if position.Timestamp > 0 {
-				channel.Timestamp = position.Timestamp
-			}
-		}
-		channels = append(channels, &api.Channel{
-			ID:        channel.ID,
-			Index:     channel.Index,
-			Timestamp: channel.Timestamp,
-		})
+		channels = append(channels, tcs...)
 	}
 
-	out := api.ChannelsResponse{
+	out := &api.ChannelsResponse{
 		Channels: channels,
 	}
 	return c.JSON(http.StatusOK, out)
 }
 
-func (s *Server) notifyChannel(ctx context.Context, t *api.ChannelToken, idx int64) error {
+func (s *Server) channelsForUser(ctx context.Context, kid keys.ID) ([]*Channel, map[keys.ID]*UserChannel, error) {
+	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("users", kid, "channels"))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer iter.Release()
+
+	paths := []string{}
+	userMap := map[keys.ID]*UserChannel{}
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			return nil, nil, err
+		}
+		if doc == nil {
+			break
+		}
+		var c UserChannel
+		if err := doc.To(&c); err != nil {
+			return nil, nil, err
+		}
+		userMap[c.Channel] = &c
+		paths = append(paths, dstore.Path("channels", c.Channel))
+	}
+
+	out := []*Channel{}
+	docs, err := s.fi.GetAll(ctx, paths)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, doc := range docs {
+		var c Channel
+		if err := doc.To(&c); err != nil {
+			return nil, nil, err
+		}
+		out = append(out, &c)
+	}
+	return out, userMap, nil
+}
+
+func (s *Server) userChannels(ctx context.Context, aid keys.ID) ([]*api.Channel, error) {
+	channels, userMap, err := s.channelsForUser(ctx, aid)
+	if err != nil {
+		return nil, err
+	}
+	out, err := s.fillChannels(ctx, channels)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range out {
+		uc := userMap[c.ID]
+		if uc != nil {
+			c.UserKey = uc.Key
+		}
+	}
+	return out, nil
+}
+
+func (s *Server) fillChannels(ctx context.Context, channels []*Channel) ([]*api.Channel, error) {
+	paths := []string{}
+	for _, channel := range channels {
+		paths = append(paths, dstore.Path("channels", channel.ID))
+	}
+	positions, err := s.fi.EventPositions(ctx, paths)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*api.Channel, 0, len(channels))
+	for _, channel := range channels {
+		path := dstore.Path("channels", channel.ID)
+		position, ok := positions[path]
+		if ok {
+			channel.Index = position.Index
+			channel.Timestamp = position.Timestamp
+		}
+		c := &api.Channel{
+			ID:        channel.ID,
+			Index:     channel.Index,
+			Timestamp: channel.Timestamp,
+			Info:      channel.Info,
+			Team:      channel.Team,
+			TeamKey:   channel.TeamKey,
+		}
+		out = append(out, c)
+	}
+
+	return out, nil
+}
+
+func (s *Server) notifyChannel(ctx context.Context, vt *api.ChannelToken, idx int64) error {
 	event := &wsapi.Event{
-		Type:  "channel",
-		Token: t.Token,
-		Channel: &wsapi.Channel{
-			KID:   t.Channel,
+		Type:  wsapi.ChannelType,
+		Token: vt.Token,
+		Vault: &wsapi.Vault{
+			ID:    vt.Channel,
 			Index: idx,
 		},
 	}

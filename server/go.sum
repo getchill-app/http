@@ -78,12 +78,12 @@ github.com/envoyproxy/protoc-gen-validate v0.5.0/go.mod h1:xL5IroIBOR+aTp0IZk48e
 github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/flynn/noise v0.0.0-20180327030543-2492fe189ae6/go.mod h1:1i71OnUq3iUe1ma7Lr6yG6/rjvM3emb6yoL7xLFzcVQ=
 github.com/flynn/noise v1.0.0/go.mod h1:xbMo+0i6+IGbYdJhF31t2eR1BIU0CYc12+BNAKwUTag=
-github.com/getchill-app/http/api v0.0.0-20210513003631-9b9948ca12d6 h1:LtwLjIbnkplJL6KpezkGChw+YFr1WCnnR8ORDDPCC24=
-github.com/getchill-app/http/api v0.0.0-20210513003631-9b9948ca12d6/go.mod h1:YcTvsCXGsTYENKwLtzfrYMePuGrB58ibapkrFrNf5KA=
+github.com/getchill-app/http/api v0.0.0-20210515202516-f6305dc12308 h1:mO62Rmf1vLlvuZNOZ9TuWTGPEw+SaRUALnubNGSOT5Y=
+github.com/getchill-app/http/api v0.0.0-20210515202516-f6305dc12308/go.mod h1:YcTvsCXGsTYENKwLtzfrYMePuGrB58ibapkrFrNf5KA=
 github.com/getchill-app/keyring v0.0.0-20210510182950-cf0123330ce2 h1://q7/dji6ir2vE8Di9vf/1mzqxZjWGuhhHtVRY5D6RA=
 github.com/getchill-app/keyring v0.0.0-20210510182950-cf0123330ce2/go.mod h1:cFIq7gsowgSXAKTJW1zkhmHgrhoMKe11Hobo+ZgtyyY=
-github.com/getchill-app/ws/api v0.0.0-20210504010258-9e1738caa70d h1:PdEmCKXmRPOUWb5/UWHmzJodm0aTWcs9IWKa5CB7WgE=
-github.com/getchill-app/ws/api v0.0.0-20210504010258-9e1738caa70d/go.mod h1:kvPA/jy4fqi9127VjU6z09lJ4FyII+XrpcQNkZ+uNFs=
+github.com/getchill-app/ws/api v0.0.0-20210515202614-2e7dadf92402 h1:SMLCLiOZEEMP5UpiWWK907UMvoc7EAFQEyW19FoyaWY=
+github.com/getchill-app/ws/api v0.0.0-20210515202614-2e7dadf92402/go.mod h1:kvPA/jy4fqi9127VjU6z09lJ4FyII+XrpcQNkZ+uNFs=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=

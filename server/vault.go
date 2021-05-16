@@ -248,7 +248,7 @@ func (s *Server) postVault(c echo.Context) error {
 		if err := doc.To(&vault); err != nil {
 			return s.ErrResponse(c, err)
 		}
-		vt := &api.VaultToken{KID: vid, Token: vault.Token}
+		vt := &api.VaultToken{Vault: vid, Token: vault.Token}
 		if err := s.notifyVault(ctx, vt, idx); err != nil {
 			return err
 		}
@@ -387,10 +387,11 @@ func (s *Server) postVaultsStatus(c echo.Context) error {
 
 func (s *Server) notifyVault(ctx context.Context, vt *api.VaultToken, idx int64) error {
 	event := &wsapi.Event{
-		Type:  "vault",
+		Type:  wsapi.VaultType,
 		Token: vt.Token,
 		Vault: &wsapi.Vault{
-			KID:   vt.KID,
+			ID: vt.Vault,
+
 			Index: idx,
 		},
 	}

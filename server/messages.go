@@ -109,8 +109,8 @@ func (s *Server) postMessage(c echo.Context) error {
 		if err := doc.To(&channel); err != nil {
 			return s.ErrResponse(c, err)
 		}
-		vt := &api.ChannelToken{Channel: cid, Token: channel.Token}
-		if err := s.notifyChannel(ctx, vt, idx); err != nil {
+		ct := &api.ChannelToken{Channel: cid, Token: channel.Token}
+		if err := s.notifyChannel(ctx, ct, idx); err != nil {
 			return err
 		}
 	}

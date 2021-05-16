@@ -114,11 +114,11 @@ func (s *Server) getTeam(c echo.Context) error {
 	return c.JSON(http.StatusOK, team)
 }
 
-func (s *Server) findTeam(ctx context.Context, kid keys.ID) (*api.Team, error) {
-	if kid == "" {
+func (s *Server) findTeam(ctx context.Context, id keys.ID) (*api.Team, error) {
+	if id == "" {
 		return nil, errors.Errorf("empty kid")
 	}
-	path := dstore.Path("teams", kid)
+	path := dstore.Path("teams", id)
 
 	doc, err := s.fi.Get(ctx, path)
 	if err != nil {
@@ -152,8 +152,7 @@ func (s *Server) verifyTeam(ctx context.Context, team *api.Team) error {
 	return nil
 }
 
-func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*Channel, error) {
-	ctx := c.Request().Context()
+func (s *Server) channelsForTeam(ctx context.Context, kid keys.ID) ([]*Channel, error) {
 	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("channels"), dstore.Where("team", "==", kid.String()))
 	if err != nil {
 		return nil, err
@@ -178,118 +177,12 @@ func (s *Server) channelsForTeam(c echo.Context, kid keys.ID) ([]*Channel, error
 	return ovs, nil
 }
 
-func (s *Server) putTeamChannel(c echo.Context) error {
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	ctx := c.Request().Context()
-
-	body, err := readBody(c, false, 64*1024)
+func (s *Server) teamChannels(ctx context.Context, tid keys.ID) ([]*api.Channel, error) {
+	channels, err := s.channelsForTeam(ctx, tid)
 	if err != nil {
-		return s.ErrResponse(c, err)
+		return nil, err
 	}
-
-	// Auth
-	acct, err := s.authAccount(c, "", body)
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-	aid := acct.KID
-
-	tid, err := keys.ParseID(c.Param("tid"))
-	if err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-
-	cid, err := keys.ParseID(c.Param("cid"))
-	if err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-
-	var req api.TeamChannelCreateRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-
-	team, err := s.findTeam(ctx, tid)
-	if err != nil {
-		return s.ErrBadRequest(c, err)
-	}
-	if team == nil {
-		return s.ErrBadRequest(c, errors.Errorf("invalid team"))
-	}
-
-	// Create
-	create := &Channel{
-		ID:            cid,
-		Token:         team.Token,
-		Team:          tid,
-		CreatedBy:     aid,
-		EncryptedInfo: req.EncryptedInfo,
-		EncryptedKey:  req.EncryptedKey,
-	}
-	path := dstore.Path("channels", cid)
-	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	return JSON(c, http.StatusOK, create)
-}
-
-func (s *Server) getTeamChannels(c echo.Context) error {
-	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())
-	ctx := c.Request().Context()
-
-	auth, err := s.auth(c, newAuthRequest("Authorization", "tid", nil))
-	if err != nil {
-		return s.ErrForbidden(c, err)
-	}
-	tid := auth.KID
-
-	includeEncryptedKey := c.QueryParam("ek") == "1"
-	includeEncryptedInfo := c.QueryParam("einfo") == "1"
-
-	channels, err := s.channelsForTeam(c, tid)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-	paths := []string{}
-	for _, channel := range channels {
-		paths = append(paths, dstore.Path("channels", channel.ID))
-	}
-
-	positions, err := s.fi.EventPositions(ctx, paths)
-	if err != nil {
-		return s.ErrResponse(c, err)
-	}
-
-	tcs := make([]*api.Channel, 0, len(channels))
-	for _, channel := range channels {
-		path := dstore.Path("channels", channel.ID)
-		position := positions[path]
-		if position != nil {
-			channel.Index = position.Index
-			if position.Timestamp > 0 {
-				channel.Timestamp = position.Timestamp
-			}
-		}
-		out := &api.Channel{
-			ID:        channel.ID,
-			Index:     channel.Index,
-			Timestamp: channel.Timestamp,
-			Token:     channel.Token,
-		}
-		if includeEncryptedKey {
-			out.EncryptedKey = channel.EncryptedKey
-		}
-		if includeEncryptedInfo {
-			out.EncryptedInfo = channel.EncryptedInfo
-		}
-		tcs = append(tcs, out)
-	}
-
-	out := &api.TeamChannelsResponse{
-		Channels: tcs,
-	}
-	return c.JSON(http.StatusOK, out)
+	return s.fillChannels(ctx, channels)
 }
 
 func (s *Server) putTeamInvite(c echo.Context) error {
@@ -317,13 +210,13 @@ func (s *Server) putTeamInvite(c echo.Context) error {
 		return s.ErrBadRequest(c, err)
 	}
 
-	registerCode := keys.RandPassword(12)
+	registerCode := keys.RandPhrase()
 	if err := s.accountInvite(ctx, req.Email, registerCode, acct.KID); err != nil {
 		return s.ErrResponse(c, err)
 	}
 
 	invite := api.TeamInvite{
-		EncryptedKey: req.EncryptedKey,
+		TeamKey:      req.TeamKey,
 		Email:        req.Email,
 		RegisterCode: registerCode,
 		CreatedAt:    s.clock.Now(),
@@ -378,7 +271,7 @@ func (s *Server) getTeamInvite(c echo.Context) error {
 	}
 
 	resp := &api.TeamInviteResponse{
-		EncryptedKey: invite.EncryptedKey,
+		TeamKey:      invite.TeamKey,
 		RegisterCode: invite.RegisterCode,
 	}
 	return JSON(c, http.StatusOK, resp)

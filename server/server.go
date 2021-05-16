@@ -96,8 +96,6 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	// Team
 	e.PUT("/team/:tid", s.putTeam)
 	e.GET("/team/:tid", s.getTeam)
-	e.PUT("/team/:tid/channel/:cid", s.putTeamChannel)
-	e.GET("/team/:tid/channels", s.getTeamChannels)
 	e.PUT("/team/invite/:id", s.putTeamInvite)
 	e.GET("/team/invite/:id", s.getTeamInvite)
 
@@ -109,7 +107,7 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.GET("/messages/:cid", s.listMessages)
 	e.DELETE("/channel/:cid", s.deleteChannel)
 	e.HEAD("/channel/:cid", s.headChannel)
-	e.POST("/channels", s.postChannels)
+	e.GET("/channels", s.getChannels)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)

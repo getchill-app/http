@@ -24,12 +24,10 @@ type Channel struct {
 	UserKey Encrypted `json:"userKey,omitempty" msgpack:"userKey,omitempty"`
 }
 
-func (c *Channel) DecryptInfo(key *keys.EdX25519Key) *ChannelInfo {
-	var info ChannelInfo
-	if err := Decrypt(c.Info, &info, key); err != nil {
-		return nil
-	}
-	return &info
+// ChannelInfo for setting channel name or description.
+type ChannelInfo struct {
+	Name        string `json:"name,omitempty" msgpack:"name,omitempty"`
+	Description string `json:"desc,omitempty" msgpack:"desc,omitempty"`
 }
 
 type UserKey struct {

@@ -30,8 +30,6 @@ type Channel struct {
 
 	Team    keys.ID   `json:"team,omitempty"`
 	TeamKey Encrypted `json:"teamKey,omitempty"`
-
-	Users []keys.ID `json:"users,omitempty"`
 }
 
 type UserChannel struct {
@@ -102,7 +100,11 @@ func (s *Server) putChannel(c echo.Context) error {
 	}
 	create.Token = token
 
-	users := []keys.ID{}
+	path := dstore.Path("channels", cid)
+	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
 	for _, userKey := range req.UserKeys {
 		userChannel := &UserChannel{
 			User:    userKey.User,
@@ -113,13 +115,11 @@ func (s *Server) putChannel(c echo.Context) error {
 		if err := s.fi.Create(ctx, userPath, dstore.From(userChannel)); err != nil {
 			return s.ErrResponse(c, err)
 		}
-		users = append(users, userKey.User)
-	}
-	create.Users = users
 
-	path := dstore.Path("channels", cid)
-	if err := s.fi.Create(ctx, path, dstore.From(create)); err != nil {
-		return s.ErrResponse(c, err)
+		channelUserPath := dstore.Path("channels", cid, "users", userKey.User)
+		if err := s.fi.Create(ctx, channelUserPath, dstore.From(userChannel)); err != nil {
+			return s.ErrResponse(c, err)
+		}
 	}
 
 	event := &wsapi.Event{
@@ -273,30 +273,19 @@ func (s *Server) deleteChannel(c echo.Context) error {
 		return s.ErrNotFound(c, errors.Errorf("channel was deleted"))
 	}
 
-	// Remove user channels
-	userPaths := []string{}
-	for _, user := range channel.Users {
-		userPaths = append(userPaths, dstore.Path("users", user, "channels", cid))
-	}
-	if len(userPaths) > 0 {
-		if err := s.fi.DeleteAll(ctx, userPaths); err != nil {
-			return s.ErrResponse(c, err)
-		}
-	}
-
-	// Remove messages
 	path := dstore.Path("channels", cid)
-	if _, err := s.fi.EventsDelete(ctx, path); err != nil {
-		return s.ErrResponse(c, err)
-	}
+
+	// TODO: Remove user channels
+	// TODO: Remove messages
+	// if _, err := s.fi.EventsDelete(ctx, path); err != nil {
+	// 	return s.ErrResponse(c, err)
+	// }
 
 	// Set channel deleted
 	deleted := &Channel{
-		ID:      cid,
 		Deleted: true,
 	}
-	// TODO: Instead of delete/create, overwrite with deleted entry
-	if err := s.fi.Create(ctx, path, dstore.From(deleted)); err != nil {
+	if err := s.fi.Set(ctx, path, dstore.From(deleted), dstore.MergeAll()); err != nil {
 		return s.ErrResponse(c, err)
 	}
 

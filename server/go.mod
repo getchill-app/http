@@ -6,7 +6,7 @@ require (
 	github.com/alta/protopatch v0.3.3 // indirect
 	github.com/badoux/checkmail v1.2.1
 	github.com/davecgh/go-spew v1.1.1
-	github.com/getchill-app/http/api v0.0.0-20210515202516-f6305dc12308
+	github.com/getchill-app/http/api v0.0.0-20210520194543-13fdf5e518c2
 	github.com/getchill-app/keyring v0.0.0-20210510182950-cf0123330ce2
 	github.com/getchill-app/ws/api v0.0.0-20210515202614-2e7dadf92402
 	github.com/keys-pub/keys v0.1.22-0.20210428191820-49dfbda60f85

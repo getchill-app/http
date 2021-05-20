@@ -107,6 +107,9 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.GET("/channel/:cid/messages", s.listMessages)
 	e.DELETE("/channel/:cid", s.deleteChannel)
 	e.GET("/channels", s.getChannels)
+	e.GET("/channel/:cid/users", s.getChannelUsers)
+	e.POST("/channel/:cid/users/add", s.postChannelUsersAdd)
+	e.POST("/channel/:cid/users/remove", s.postChannelUsersRemove)
 
 	// User
 	e.GET("/user/lookup", s.getUserLookup)

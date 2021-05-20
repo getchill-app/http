@@ -28,6 +28,7 @@ type Channel struct {
 type ChannelInfo struct {
 	Name        string `json:"name,omitempty" msgpack:"name,omitempty"`
 	Description string `json:"desc,omitempty" msgpack:"desc,omitempty"`
+	Topic       string `json:"topic,omitempty" msgpack:"topic,omitempty"`
 }
 
 type UserKey struct {
@@ -42,6 +43,18 @@ type ChannelCreateRequest struct {
 
 	Team    keys.ID   `json:"team,omitempty"`
 	TeamKey Encrypted `json:"teamKey,omitempty"`
+}
+
+type ChannelUsersAddRequest struct {
+	UserKeys []*UserKey `json:"userKeys,omitempty"`
+}
+
+type ChannelUsersRemoveRequest struct {
+	Users []keys.ID `json:"users,omitempty"`
+}
+
+type ChannelUsersResponse struct {
+	Users []keys.ID `json:"users,omitempty"`
 }
 
 type ChannelToken struct {

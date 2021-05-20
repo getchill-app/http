@@ -62,13 +62,40 @@ func TestChannels(t *testing.T) {
 
 	channel, err = bobClient.Channel(ctx, channelKey, bob)
 	require.NoError(t, err)
-	require.Equal(t, "testing", channel.DecryptInfo(channelKey).Name)
+	var infoOut api.ChannelInfo
+	err = api.Decrypt(channel.Info, &infoOut, channelKey)
+	require.NoError(t, err)
+	require.Equal(t, "testing", infoOut.Name)
 
 	channels, err = bobClient.Channels(ctx, "", bob)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(channels))
+	require.Equal(t, keys.ID("kex1tw2r0t02l7lg7sd38ktw6jwj75wddsnxek8vc2ztq4fwcjgjhrws4efqvl"), channels[0].ID)
 	require.Equal(t, int64(1), channels[0].Index)
 	channelKeyOut, err := api.DecryptKey(channels[0].UserKey, bob)
 	require.NoError(t, err)
 	require.Equal(t, channelKeyOut, channelKey)
+
+	// Add charlie
+	charlie := keys.NewEdX25519KeyFromSeed(testutil.Seed(0x03))
+	charlieClient := testutil.NewTestClient(t, env)
+	err = aliceClient.AccountInvite(ctx, "charlie@keys.pub", alice)
+	require.NoError(t, err)
+	testAccount(t, charlieClient, emailer, charlie, "charlie@keys.pub", "charlie")
+
+	err = aliceClient.ChannelUsersAdd(ctx, channelKey, []keys.ID{charlie.ID()})
+	require.NoError(t, err)
+
+	channels, err = charlieClient.Channels(ctx, "", charlie)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(channels))
+	require.Equal(t, keys.ID("kex1tw2r0t02l7lg7sd38ktw6jwj75wddsnxek8vc2ztq4fwcjgjhrws4efqvl"), channels[0].ID)
+
+	users, err := charlieClient.ChannelUsers(ctx, channelKey)
+	require.NoError(t, err)
+	require.Equal(t, []keys.ID{
+		keys.ID("kex132yw8ht5p8cetl2jmvknewjawt9xwzdlrk2pyxlnwjyqrdq0dawqqph077"),
+		keys.ID("kex1a4yj333g68pvd6hfqvufqkv4vy54jfe6t33ljd3kc9rpfty8xlgs2u3qxr"),
+		keys.ID("kex1syuhwr4g05t4744r23nvxnr7en9cmz53knhr0gja7c84hr7fkw2quf6zcg"),
+	}, users)
 }

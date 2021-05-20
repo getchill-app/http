@@ -86,6 +86,74 @@ func (c *Client) Channel(ctx context.Context, channel *keys.EdX25519Key, account
 	return &ch, nil
 }
 
+func (c *Client) ChannelUsers(ctx context.Context, channel *keys.EdX25519Key) ([]keys.ID, error) {
+	path := dstore.Path("channel", channel.ID(), "users")
+
+	resp, err := c.Request(ctx, &client.Request{Method: "GET", Path: path, Key: channel})
+	if err != nil {
+		return nil, err
+	}
+
+	var out api.ChannelUsersResponse
+	if err := json.Unmarshal(resp.Data, &out); err != nil {
+		return nil, err
+	}
+	return out.Users, nil
+}
+
+func (c *Client) ChannelUsersAdd(ctx context.Context, channel *keys.EdX25519Key, users []keys.ID) error {
+	req := &api.ChannelUsersAddRequest{}
+
+	userKeys := []*api.UserKey{}
+	for _, user := range users {
+		uk, err := api.EncryptKey(channel, user)
+		if err != nil {
+			return err
+		}
+		userKeys = append(userKeys, &api.UserKey{User: user, Key: uk})
+	}
+	req.UserKeys = userKeys
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	path := dstore.Path("channel", channel.ID(), "users/add")
+
+	resp, err := c.Request(ctx, &client.Request{Method: "POST", Path: path, Body: body, Key: channel})
+	if err != nil {
+		return err
+	}
+	var ch api.Channel
+	if err := json.Unmarshal(resp.Data, &ch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) ChannelUsersRemove(ctx context.Context, channel *keys.EdX25519Key, users []keys.ID) error {
+	req := &api.ChannelUsersRemoveRequest{Users: users}
+	body, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	path := dstore.Path("channel", channel.ID(), "users/remove")
+
+	resp, err := c.Request(ctx, &client.Request{Method: "POST", Path: path, Body: body, Key: channel})
+	if err != nil {
+		return err
+	}
+	var ch api.Channel
+	if err := json.Unmarshal(resp.Data, &ch); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) Channels(ctx context.Context, team keys.ID, account *keys.EdX25519Key) ([]*api.Channel, error) {
 	params := url.Values{}
 	if team != "" {

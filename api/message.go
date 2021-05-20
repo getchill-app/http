@@ -23,9 +23,9 @@ type Message struct {
 	Command *MessageCommand `json:"cmd,omitempty" msgpack:"cmd,omitempty" db:"cmd"`
 
 	// RemoteIndex is set from the remote events API (untrusted).
-	RemoteIndex int64 `json:"-" msgpack:"-" db:"ridx"`
+	RemoteIndex int64 `json:"ridx,omitempty" msgpack:"ridx,omitempty" db:"ridx"`
 	// RemoteTimestamp is set from the remote events API (untrusted).
-	RemoteTimestamp int64 `json:"-" msgpack:"-" db:"rts"`
+	RemoteTimestamp int64 `json:"rts,omitempty" msgpack:"rts,omitempty" db:"rts"`
 }
 
 // NewID returns a new random ID (string).

@@ -39,7 +39,7 @@ func (s *Server) getChannelUsers(c echo.Context) error {
 		if doc == nil {
 			break
 		}
-		var uc UserChannel
+		var uc ChannelUser
 		if err := doc.To(&uc); err != nil {
 			return s.ErrResponse(c, err)
 		}
@@ -83,18 +83,18 @@ func (s *Server) postChannelUsersAdd(c echo.Context) error {
 	}
 
 	for _, userKey := range req.UserKeys {
-		userChannel := &UserChannel{
+		cu := &ChannelUser{
 			User:    userKey.User,
 			Channel: cid,
 			Key:     userKey.Key,
 		}
 		userPath := dstore.Path("users", userKey.User, "channels", cid)
-		if err := s.fi.Create(ctx, userPath, dstore.From(userChannel)); err != nil {
+		if err := s.fi.Create(ctx, userPath, dstore.From(cu)); err != nil {
 			return s.ErrResponse(c, err)
 		}
 
 		channelUserPath := dstore.Path("channels", cid, "users", userKey.User)
-		if err := s.fi.Create(ctx, channelUserPath, dstore.From(userChannel)); err != nil {
+		if err := s.fi.Create(ctx, channelUserPath, dstore.From(cu)); err != nil {
 			return s.ErrResponse(c, err)
 		}
 	}

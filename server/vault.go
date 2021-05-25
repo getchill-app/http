@@ -10,6 +10,7 @@ import (
 	wsapi "github.com/getchill-app/ws/api"
 	"github.com/keys-pub/keys"
 	"github.com/keys-pub/keys/dstore"
+	"github.com/keys-pub/keys/dstore/events"
 	"github.com/keys-pub/keys/tsutil"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
@@ -225,7 +226,11 @@ func (s *Server) postVault(c echo.Context) error {
 
 	path := dstore.Path("vaults", vid)
 
-	_, idx, err := s.fi.EventsAdd(ctx, path, data)
+	docs := []events.Document{}
+	for _, b := range data {
+		docs = append(docs, dstore.Data(b))
+	}
+	idx, err := s.fi.EventsAdd(ctx, path, docs)
 	if err != nil {
 		return err
 	}

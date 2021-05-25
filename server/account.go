@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -82,6 +81,11 @@ func (s *Server) putAccount(c echo.Context) error {
 		return s.ErrResponse(c, err)
 	}
 
+	eventPath := dstore.Path("changes", "accounts")
+	if _, err := s.fi.EventAdd(ctx, eventPath, map[string]interface{}{"kid": aid}); err != nil {
+		return s.ErrResponse(c, err)
+	}
+
 	var out struct{}
 	return JSON(c, http.StatusOK, out)
 }
@@ -122,25 +126,25 @@ func (s *Server) findAccount(ctx context.Context, kid keys.ID) (*api.Account, er
 	return &acct, nil
 }
 
-func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Account, error) {
-	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", strings.ToLower(email)))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Release()
-	doc, err := iter.Next()
-	if err != nil {
-		return nil, err
-	}
-	if doc == nil {
-		return nil, nil
-	}
-	var acct api.Account
-	if err := doc.To(&acct); err != nil {
-		return nil, err
-	}
-	return &acct, nil
-}
+// func (s *Server) findAccountByEmail(ctx context.Context, email string) (*api.Account, error) {
+// 	iter, err := s.fi.DocumentIterator(ctx, "accounts", dstore.Where("email", "==", strings.ToLower(email)))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer iter.Release()
+// 	doc, err := iter.Next()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if doc == nil {
+// 		return nil, nil
+// 	}
+// 	var acct api.Account
+// 	if err := doc.To(&acct); err != nil {
+// 		return nil, err
+// 	}
+// 	return &acct, nil
+// }
 
 func (s *Server) postAccountUsername(c echo.Context) error {
 	s.logger.Infof("Server %s %s", c.Request().Method, c.Request().URL.String())

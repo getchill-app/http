@@ -89,7 +89,7 @@ func (s *Server) postMessage(c echo.Context) error {
 
 	path := dstore.Path("channels", cid)
 
-	_, idx, err := s.fi.EventsAdd(ctx, path, [][]byte{b})
+	idx, err := s.fi.EventAdd(ctx, path, dstore.Data(b))
 	if err != nil {
 		return err
 	}

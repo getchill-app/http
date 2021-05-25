@@ -32,7 +32,7 @@ type Channel struct {
 	TeamKey Encrypted `json:"teamKey,omitempty"`
 }
 
-type UserChannel struct {
+type ChannelUser struct {
 	User    keys.ID   `json:"user"`
 	Key     Encrypted `json:"key"`
 	Channel keys.ID   `json:"channel"`
@@ -106,18 +106,18 @@ func (s *Server) putChannel(c echo.Context) error {
 	}
 
 	for _, userKey := range req.UserKeys {
-		userChannel := &UserChannel{
+		cu := &ChannelUser{
 			User:    userKey.User,
 			Channel: cid,
 			Key:     userKey.Key,
 		}
 		userPath := dstore.Path("users", userKey.User, "channels", cid)
-		if err := s.fi.Create(ctx, userPath, dstore.From(userChannel)); err != nil {
+		if err := s.fi.Create(ctx, userPath, dstore.From(cu)); err != nil {
 			return s.ErrResponse(c, err)
 		}
 
 		channelUserPath := dstore.Path("channels", cid, "users", userKey.User)
-		if err := s.fi.Create(ctx, channelUserPath, dstore.From(userChannel)); err != nil {
+		if err := s.fi.Create(ctx, channelUserPath, dstore.From(cu)); err != nil {
 			return s.ErrResponse(c, err)
 		}
 	}
@@ -215,13 +215,13 @@ func (s *Server) getChannel(c echo.Context) error {
 	}
 
 	if channel.Team == "" {
-		var uc UserChannel
+		var cu ChannelUser
 		ok, err := s.fi.Load(ctx, dstore.Path("users", aid, "channels", cid), &c)
 		if err != nil {
 			return s.ErrResponse(c, err)
 		}
 		if ok {
-			out.UserKey = uc.Key
+			out.UserKey = cu.Key
 		}
 	}
 
@@ -333,7 +333,7 @@ func (s *Server) getChannels(c echo.Context) error {
 	return c.JSON(http.StatusOK, out)
 }
 
-func (s *Server) channelsForUser(ctx context.Context, kid keys.ID) ([]*Channel, map[keys.ID]*UserChannel, error) {
+func (s *Server) channelsForUser(ctx context.Context, kid keys.ID) ([]*Channel, map[keys.ID]*ChannelUser, error) {
 	iter, err := s.fi.DocumentIterator(ctx, dstore.Path("users", kid, "channels"))
 	if err != nil {
 		return nil, nil, err
@@ -341,7 +341,7 @@ func (s *Server) channelsForUser(ctx context.Context, kid keys.ID) ([]*Channel, 
 	defer iter.Release()
 
 	paths := []string{}
-	userMap := map[keys.ID]*UserChannel{}
+	userMap := map[keys.ID]*ChannelUser{}
 	for {
 		doc, err := iter.Next()
 		if err != nil {
@@ -350,12 +350,12 @@ func (s *Server) channelsForUser(ctx context.Context, kid keys.ID) ([]*Channel, 
 		if doc == nil {
 			break
 		}
-		var c UserChannel
-		if err := doc.To(&c); err != nil {
+		var cu ChannelUser
+		if err := doc.To(&cu); err != nil {
 			return nil, nil, err
 		}
-		userMap[c.Channel] = &c
-		paths = append(paths, dstore.Path("channels", c.Channel))
+		userMap[cu.Channel] = &cu
+		paths = append(paths, dstore.Path("channels", cu.Channel))
 	}
 
 	out := []*Channel{}

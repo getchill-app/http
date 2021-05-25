@@ -112,7 +112,7 @@ func (s *Server) AddRoutes(e *echo.Echo) {
 	e.POST("/channel/:cid/users/remove", s.postChannelUsersRemove)
 
 	// User
-	e.GET("/user/lookup", s.getUserLookup)
+	e.GET("/users", s.getUsers)
 
 	// Share
 	e.GET("/share/:kid", s.getShare)

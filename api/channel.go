@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/keys-pub/keys"
-	"github.com/keys-pub/keys/dstore/events"
 )
 
 type Encrypted []byte
@@ -63,9 +62,9 @@ type ChannelToken struct {
 }
 
 type MesssagesResponse struct {
-	Messages  []*events.Event `json:"msgs" msgpack:"msgs"`
-	Index     int64           `json:"idx" msgpack:"idx"`
-	Truncated bool            `json:"truncated,omitempty" msgpack:"trunc,omitempty"`
+	Messages  []*Event `json:"msgs" msgpack:"msgs"`
+	Index     int64    `json:"idx" msgpack:"idx"`
+	Truncated bool     `json:"truncated,omitempty" msgpack:"trunc,omitempty"`
 }
 
 type ChannelsResponse struct {
